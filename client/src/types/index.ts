@@ -30,6 +30,21 @@ export interface CustomField {
   created_at: string;
 }
 
+export interface EnrichmentData {
+  enriched_at: string;
+  website_status: string;
+  services: string[];
+  products: string[];
+  clients: string[];
+  focus: string;
+  technologies: string[];
+  team_info: string | null;
+  recent_events: string[];
+  summary: string;
+  suitability_score: number;
+  suitability_reasons: string[];
+}
+
 export interface Lead {
   id: number;
   register_id?: string;
@@ -54,6 +69,7 @@ export interface Lead {
   assigned_to?: number;
   assigned_to_name?: string;
   custom_fields?: Record<string, any>;
+  enrichment_data?: EnrichmentData;
   tags?: Tag[];
   notes?: Note[];
   reminders?: Reminder[];
