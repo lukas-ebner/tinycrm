@@ -249,7 +249,7 @@ export default function KanbanPage() {
                       className="block"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleLeadClick(lead, stage.id);
+                        handleLeadClick(lead, 0);
                       }}
                     >
                       <h3 className="font-medium text-gray-900 hover:text-amber-600 mb-1">

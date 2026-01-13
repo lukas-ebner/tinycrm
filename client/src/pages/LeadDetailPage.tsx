@@ -22,7 +22,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, Stage, User, Note, Reminder, Tag, Contact } from '@/types/index';
+import type { Lead, Stage, User, Note, Reminder, Tag, Contact, CustomField } from '@/types/index';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LeadDetailPage() {
