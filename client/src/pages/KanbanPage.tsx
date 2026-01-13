@@ -179,9 +179,16 @@ export default function KanbanPage() {
                         handleLeadClick(lead, stage.id);
                       }}
                     >
-                      <h3 className="font-medium text-gray-900 hover:text-amber-600 mb-1">
-                        {lead.name}
-                      </h3>
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-gray-900 hover:text-amber-600">
+                          {lead.name}
+                        </h3>
+                        {lead.enrichment_data?.suitability_score && (
+                          <span className="text-sm ml-2 flex-shrink-0">
+                            {'⭐'.repeat(lead.enrichment_data.suitability_score)}
+                          </span>
+                        )}
+                      </div>
                     </Link>
 
                     {lead.legal_form && (
@@ -252,9 +259,16 @@ export default function KanbanPage() {
                         handleLeadClick(lead, 0);
                       }}
                     >
-                      <h3 className="font-medium text-gray-900 hover:text-amber-600 mb-1">
-                        {lead.name}
-                      </h3>
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-medium text-gray-900 hover:text-amber-600">
+                          {lead.name}
+                        </h3>
+                        {lead.enrichment_data?.suitability_score && (
+                          <span className="text-sm ml-2 flex-shrink-0">
+                            {'⭐'.repeat(lead.enrichment_data.suitability_score)}
+                          </span>
+                        )}
+                      </div>
                     </Link>
 
                     {lead.legal_form && (

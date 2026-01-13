@@ -569,6 +569,9 @@ export default function LeadsPage() {
                     Company
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Location
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -598,6 +601,21 @@ export default function LeadsPage() {
                       </Link>
                       {lead.legal_form && (
                         <p className="text-sm text-gray-500">{lead.legal_form}</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {lead.enrichment_data?.suitability_score ? (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-lg">
+                            {'⭐'.repeat(lead.enrichment_data.suitability_score)}
+                            {'☆'.repeat(5 - lead.enrichment_data.suitability_score)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({lead.enrichment_data.suitability_score}/5)
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
