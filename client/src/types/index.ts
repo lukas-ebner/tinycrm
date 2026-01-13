@@ -39,6 +39,8 @@ export interface EnrichmentData {
   focus: string;
   technologies: string[];
   team_info: string | null;
+  founding_year: number | null;
+  company_age: number | null;
   recent_events: string[];
   summary: string;
   suitability_score: number;

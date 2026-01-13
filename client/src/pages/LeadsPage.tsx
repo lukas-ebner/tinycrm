@@ -14,6 +14,7 @@ export default function LeadsPage() {
   const [cityFilter, setCityFilter] = useState('');
   const [zipFilter, setZipFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState<string[]>([]);
+  const [scoreFilter, setScoreFilter] = useState('');
   const [showSaveFilterModal, setShowSaveFilterModal] = useState(false);
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
   const [selectedFilterForBulkAssign, setSelectedFilterForBulkAssign] = useState<SavedFilter | null>(null);
@@ -125,7 +126,15 @@ export default function LeadsPage() {
     },
   });
 
-  const leads: Lead[] = leadsData?.leads || [];
+  let leads: Lead[] = leadsData?.leads || [];
+
+  // Client-side score filter
+  if (scoreFilter) {
+    const scoreValue = parseInt(scoreFilter);
+    leads = leads.filter(lead =>
+      lead.enrichment_data?.suitability_score === scoreValue
+    );
+  }
   const stages = stagesData?.stages || [];
   const total = leadsData?.total || 0;
   const filtered = leadsData?.filtered || 0;
@@ -346,6 +355,23 @@ export default function LeadsPage() {
               </select>
             </div>
           )}
+
+          {/* Score Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Eignung (Score)</label>
+            <select
+              value={scoreFilter}
+              onChange={(e) => setScoreFilter(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-600"
+            >
+              <option value="">Alle Scores</option>
+              <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+              <option value="4">⭐⭐⭐⭐☆ (4/5)</option>
+              <option value="3">⭐⭐⭐☆☆ (3/5)</option>
+              <option value="2">⭐⭐☆☆☆ (2/5)</option>
+              <option value="1">⭐☆☆☆☆ (1/5)</option>
+            </select>
+          </div>
 
           {/* NACE Code */}
           <div>

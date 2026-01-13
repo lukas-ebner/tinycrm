@@ -257,6 +257,30 @@ function analyzeWebsiteDetailed(html, companyData) {
     team_info = `${companyData.employee_count} Mitarbeiter (Handelsregister)`;
   }
 
+  // FOUNDING YEAR & COMPANY AGE
+  let founding_year = null;
+  let company_age = null;
+
+  const yearPatterns = [
+    /(?:gegründet|founded|since|seit)\s+(\d{4})/i,
+    /(\d{4})\s+gegründet/i,
+    /©\s*(\d{4})/,
+    /copyright\s+(\d{4})/i
+  ];
+
+  for (const pattern of yearPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const year = parseInt(match[1]);
+      // Validate year (between 1900 and current year)
+      if (year >= 1900 && year <= new Date().getFullYear()) {
+        founding_year = year;
+        company_age = new Date().getFullYear() - year;
+        break;
+      }
+    }
+  }
+
   // FOCUS - Was ist der Hauptfokus?
   let focus = '';
   if (services.length > 0) {
@@ -332,6 +356,8 @@ function analyzeWebsiteDetailed(html, companyData) {
     focus,
     technologies,
     team_info,
+    founding_year,
+    company_age,
     recent_events,
     summary
   };
@@ -461,6 +487,8 @@ async function enrichLead(client, lead) {
     focus: analysis.focus,
     technologies: analysis.technologies,
     team_info: analysis.team_info,
+    founding_year: analysis.founding_year,
+    company_age: analysis.company_age,
     recent_events: analysis.recent_events,
     summary: analysis.summary,
     suitability_score: suitability.score,
