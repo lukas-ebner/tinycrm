@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import api from '@/lib/api';
 import type { Lead, Stage } from '@/types/index';
+import LeadDetailModal from '@/components/LeadDetailModal';
 
 export default function KanbanPage() {
   const [search, setSearch] = useState('');
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [modalLeadIds, setModalLeadIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   // Update reminder stages on page load
   useEffect(() => {
@@ -83,21 +84,20 @@ export default function KanbanPage() {
     }
   };
 
-  // Handle lead click - save navigation context
-  const handleLeadClick = (lead: Lead, stageId: number) => {
+  // Handle lead click - open modal
+  const handleLeadClick = (leadId: number, stageId: number) => {
     const stageLeadIds = leadsByStage[stageId]?.map(l => l.id) || [];
-    sessionStorage.setItem('leadNavigationIds', JSON.stringify(stageLeadIds));
-    sessionStorage.setItem('leadNavigationSource', `kanban-stage-${stageId}`);
+    setModalLeadIds(stageLeadIds);
+    setSelectedLeadId(leadId);
   };
 
-  // Handle stage header click - navigate to first lead
+  // Handle stage header click - open first lead
   const handleStageHeaderClick = (stageId: number) => {
     const stageLeads = leadsByStage[stageId];
     if (stageLeads && stageLeads.length > 0) {
       const leadIds = stageLeads.map(l => l.id);
-      sessionStorage.setItem('leadNavigationIds', JSON.stringify(leadIds));
-      sessionStorage.setItem('leadNavigationSource', `kanban-stage-${stageId}`);
-      navigate(`/leads/${stageLeads[0].id}`);
+      setModalLeadIds(leadIds);
+      setSelectedLeadId(stageLeads[0].id);
     }
   };
 
@@ -169,27 +169,19 @@ export default function KanbanPage() {
                     key={lead.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-move"
+                    className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleLeadClick(lead.id, stage.id)}
                   >
-                    <Link
-                      to={`/leads/${lead.id}`}
-                      className="block"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLeadClick(lead, stage.id);
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-gray-900 hover:text-amber-600">
-                          {lead.name}
-                        </h3>
-                        {lead.enrichment_data?.suitability_score && (
-                          <span className="text-sm ml-2 flex-shrink-0">
-                            {'⭐'.repeat(lead.enrichment_data.suitability_score)}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium text-gray-900 hover:text-amber-600">
+                        {lead.name}
+                      </h3>
+                      {lead.enrichment_data?.suitability_score && (
+                        <span className="text-sm ml-2 flex-shrink-0">
+                          {'⭐'.repeat(lead.enrichment_data.suitability_score)}
+                        </span>
+                      )}
+                    </div>
 
                     {lead.legal_form && (
                       <p className="text-sm text-gray-500 mb-2">{lead.legal_form}</p>
@@ -249,27 +241,19 @@ export default function KanbanPage() {
                     key={lead.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-move"
+                    className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleLeadClick(lead.id, 0)}
                   >
-                    <Link
-                      to={`/leads/${lead.id}`}
-                      className="block"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLeadClick(lead, 0);
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-gray-900 hover:text-amber-600">
-                          {lead.name}
-                        </h3>
-                        {lead.enrichment_data?.suitability_score && (
-                          <span className="text-sm ml-2 flex-shrink-0">
-                            {'⭐'.repeat(lead.enrichment_data.suitability_score)}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium text-gray-900 hover:text-amber-600">
+                        {lead.name}
+                      </h3>
+                      {lead.enrichment_data?.suitability_score && (
+                        <span className="text-sm ml-2 flex-shrink-0">
+                          {'⭐'.repeat(lead.enrichment_data.suitability_score)}
+                        </span>
+                      )}
+                    </div>
 
                     {lead.legal_form && (
                       <p className="text-sm text-gray-500 mb-2">{lead.legal_form}</p>
@@ -292,6 +276,15 @@ export default function KanbanPage() {
         <div className="fixed bottom-4 right-4 bg-amber-600 text-white px-4 py-2 rounded-lg shadow-lg">
           Updating stage...
         </div>
+      )}
+
+      {selectedLeadId && (
+        <LeadDetailModal
+          leadId={selectedLeadId}
+          leadIds={modalLeadIds}
+          onClose={() => setSelectedLeadId(null)}
+          onNavigate={(newLeadId) => setSelectedLeadId(newLeadId)}
+        />
       )}
     </div>
   );
