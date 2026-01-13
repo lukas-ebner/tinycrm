@@ -434,7 +434,7 @@ export default function LeadsPage() {
               <ul className="mt-2 space-y-1">
                 {search && <li>• Search: "{search}"</li>}
                 {stageFilter && (
-                  <li>• Stage: {stages.find(s => s.id === parseInt(stageFilter))?.name}</li>
+                  <li>• Stage: {stages.find((s: any) => s.id === parseInt(stageFilter))?.name}</li>
                 )}
                 {assignedToFilter && (
                   <li>• Assigned To: {usersData?.find(u => u.id === parseInt(assignedToFilter))?.name || 'Unassigned'}</li>
