@@ -6,15 +6,19 @@ export const getContactsForLead = async (req: AuthRequest, res: Response) => {
   try {
     const { lead_id } = req.params;
 
+    console.log('Fetching contacts for lead:', lead_id);
+
     const result = await pool.query(
       'SELECT * FROM contacts WHERE lead_id = $1 ORDER BY last_name, first_name',
       [lead_id]
     );
 
+    console.log('Found contacts:', result.rows.length);
+
     res.json({ contacts: result.rows });
   } catch (error) {
     console.error('Get contacts error:', error);
-    res.status(500).json({ error: 'Failed to fetch contacts' });
+    res.status(500).json({ error: 'Failed to fetch contacts', details: error });
   }
 };
 
