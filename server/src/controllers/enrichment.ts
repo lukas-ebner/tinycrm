@@ -4,6 +4,18 @@ import pool from '../db/config.js';
 
 const SERPER_API_KEY = process.env.SERPER_API_KEY || '4a3b90dd8eb4be0199b16dd123a968785f22cfcd';
 
+// Global enrichment state
+let enrichmentState = {
+  isRunning: false,
+  currentBatch: 0,
+  totalInBatch: 0,
+  processedInBatch: 0,
+  errorsInBatch: 0,
+  startedAt: null as Date | null,
+  lastActivity: null as Date | null,
+  currentImportSource: null as string | null,
+};
+
 // Rate limiting
 let requestCount = 0;
 const MAX_REQUESTS_PER_MINUTE = 90;
@@ -258,6 +270,15 @@ export const enrichByFilter = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
+    // Check if enrichment is already running
+    if (enrichmentState.isRunning) {
+      return res.status(409).json({ 
+        error: 'Enrichment already running',
+        status: 'already_running',
+        ...getEnrichmentProgress()
+      });
+    }
+
     const { import_source, limit = 50 } = req.body;
 
     let query = `SELECT id FROM leads WHERE enrichment_data IS NULL`;
@@ -276,39 +297,76 @@ export const enrichByFilter = async (req: AuthRequest, res: Response) => {
     const leadIds = leadsResult.rows.map(r => r.id);
 
     if (leadIds.length === 0) {
-      return res.json({ message: 'No leads to enrich', enriched: 0 });
+      return res.json({ message: 'No leads to enrich', enriched: 0, status: 'complete' });
     }
+
+    // Set enrichment state
+    enrichmentState = {
+      isRunning: true,
+      currentBatch: enrichmentState.currentBatch + 1,
+      totalInBatch: leadIds.length,
+      processedInBatch: 0,
+      errorsInBatch: 0,
+      startedAt: new Date(),
+      lastActivity: new Date(),
+      currentImportSource: import_source || null,
+    };
 
     // Start enrichment in background (don't wait for completion)
     const enrichPromise = (async () => {
-      let enriched = 0;
       for (const leadId of leadIds) {
         try {
           await enrichSingleLead(leadId);
-          enriched++;
+          enrichmentState.processedInBatch++;
+          enrichmentState.lastActivity = new Date();
           await sleep(1500); // Rate limiting
         } catch (e) {
           console.error(`Failed to enrich lead ${leadId}:`, e);
+          enrichmentState.errorsInBatch++;
+          enrichmentState.lastActivity = new Date();
         }
       }
-      console.log(`✅ Enrichment complete: ${enriched}/${leadIds.length} leads`);
+      console.log(`✅ Enrichment batch complete: ${enrichmentState.processedInBatch}/${enrichmentState.totalInBatch} leads (${enrichmentState.errorsInBatch} errors)`);
+      enrichmentState.isRunning = false;
     })();
 
     // Don't await - let it run in background
-    enrichPromise.catch(console.error);
+    enrichPromise.catch((err) => {
+      console.error('Enrichment batch failed:', err);
+      enrichmentState.isRunning = false;
+    });
 
     res.json({ 
       message: `Enrichment started for ${leadIds.length} leads`,
       leads_to_enrich: leadIds.length,
-      status: 'processing'
+      status: 'processing',
+      batch: enrichmentState.currentBatch
     });
   } catch (error) {
     console.error('Enrich by filter error:', error);
+    enrichmentState.isRunning = false;
     res.status(500).json({ error: 'Failed to start enrichment' });
   }
 };
 
-// Get enrichment status (how many leads need enriching)
+// Helper to get current enrichment progress
+function getEnrichmentProgress() {
+  return {
+    isRunning: enrichmentState.isRunning,
+    batch: enrichmentState.currentBatch,
+    processed: enrichmentState.processedInBatch,
+    total: enrichmentState.totalInBatch,
+    errors: enrichmentState.errorsInBatch,
+    progress: enrichmentState.totalInBatch > 0 
+      ? Math.round((enrichmentState.processedInBatch / enrichmentState.totalInBatch) * 100)
+      : 0,
+    startedAt: enrichmentState.startedAt?.toISOString() || null,
+    lastActivity: enrichmentState.lastActivity?.toISOString() || null,
+    currentImportSource: enrichmentState.currentImportSource,
+  };
+}
+
+// Get enrichment status (how many leads need enriching + current process status)
 export const getEnrichmentStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { import_source } = req.query;
@@ -340,10 +398,31 @@ export const getEnrichmentStatus = async (req: AuthRequest, res: Response) => {
     res.json({
       pending: parseInt(stats.pending),
       enriched: parseInt(stats.enriched),
-      total: parseInt(stats.total)
+      total: parseInt(stats.total),
+      ...getEnrichmentProgress()
     });
   } catch (error) {
     console.error('Get enrichment status error:', error);
     res.status(500).json({ error: 'Failed to get enrichment status' });
+  }
+};
+
+// Stop enrichment (for future use)
+export const stopEnrichment = async (req: AuthRequest, res: Response) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // This just marks it as stopped - the current lead will finish
+    enrichmentState.isRunning = false;
+    
+    res.json({ 
+      message: 'Enrichment stop requested',
+      ...getEnrichmentProgress()
+    });
+  } catch (error) {
+    console.error('Stop enrichment error:', error);
+    res.status(500).json({ error: 'Failed to stop enrichment' });
   }
 };

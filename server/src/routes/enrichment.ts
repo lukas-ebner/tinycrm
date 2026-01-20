@@ -1,5 +1,5 @@
 import express from 'express';
-import { enrichLead, enrichByFilter, getEnrichmentStatus } from '../controllers/enrichment.js';
+import { enrichLead, enrichByFilter, getEnrichmentStatus, stopEnrichment } from '../controllers/enrichment.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -14,5 +14,8 @@ router.post('/lead/:id', requireAdmin, enrichLead);
 
 // Enrich multiple leads by filter (admin only)
 router.post('/batch', requireAdmin, enrichByFilter);
+
+// Stop enrichment (admin only)
+router.post('/stop', requireAdmin, stopEnrichment);
 
 export default router;

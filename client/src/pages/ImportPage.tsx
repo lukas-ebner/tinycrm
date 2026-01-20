@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Sparkles, Loader2, Clock, Database } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Sparkles, Loader2, Clock, Database, Square } from 'lucide-react';
 import api from '@/lib/api';
 
 interface ImportStats {
@@ -23,13 +23,18 @@ interface EnrichmentStatus {
   pending: number;
   enriched: number;
   total: number;
+  isRunning: boolean;
+  batch: number;
+  processed: number;
+  progress: number;
+  errors: number;
+  currentImportSource: string | null;
 }
 
 export default function ImportPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [enrichingSource, setEnrichingSource] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [stats, setStats] = useState<ImportStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +56,7 @@ export default function ImportPage() {
       const response = await api.get('/enrichment/status');
       return response.data as EnrichmentStatus;
     },
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: globalStatus?.isRunning ? 2000 : 10000, // Faster refresh when running
   });
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -135,21 +140,35 @@ export default function ImportPage() {
   };
 
   const handleStartEnrichment = async (importSource?: string) => {
-    setEnrichingSource(importSource || 'all');
+    if (globalStatus?.isRunning) {
+      setError('Enrichment läuft bereits...');
+      return;
+    }
+    
     try {
+      setError('');
       await api.post('/enrichment/batch', {
         import_source: importSource,
         limit: 100
       });
-      // Refresh after a delay
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['importHistory'] });
-        queryClient.invalidateQueries({ queryKey: ['enrichmentStatus'] });
-      }, 2000);
+      // Refresh immediately
+      queryClient.invalidateQueries({ queryKey: ['enrichmentStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['importHistory'] });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to start enrichment');
-    } finally {
-      setTimeout(() => setEnrichingSource(null), 3000);
+      if (err.response?.data?.status === 'already_running') {
+        setError('Enrichment läuft bereits. Bitte warten...');
+      } else {
+        setError(err.response?.data?.error || 'Failed to start enrichment');
+      }
+    }
+  };
+
+  const handleStopEnrichment = async () => {
+    try {
+      await api.post('/enrichment/stop');
+      queryClient.invalidateQueries({ queryKey: ['enrichmentStatus'] });
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to stop enrichment');
     }
   };
 
@@ -173,6 +192,7 @@ export default function ImportPage() {
   };
 
   const totalPending = globalStatus?.pending || 0;
+  const isEnrichmentRunning = globalStatus?.isRunning || false;
 
   return (
     <div className="p-8">
@@ -191,35 +211,87 @@ export default function ImportPage() {
       </div>
 
       {/* Global Enrichment Status Banner */}
-      {totalPending > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4">
+      {(totalPending > 0 || isEnrichmentRunning) && (
+        <div className={`mb-6 border rounded-lg p-4 ${
+          isEnrichmentRunning 
+            ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200' 
+            : 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200'
+        }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Sparkles className="w-5 h-5 text-purple-600" />
+              <div className={`p-2 rounded-lg ${isEnrichmentRunning ? 'bg-indigo-100' : 'bg-purple-100'}`}>
+                {isEnrichmentRunning ? (
+                  <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+                ) : (
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                )}
               </div>
               <div>
-                <p className="font-medium text-purple-900">
-                  {totalPending} Datensätze müssen noch enriched werden
-                </p>
-                <p className="text-sm text-purple-700">
-                  {globalStatus?.enriched || 0} von {globalStatus?.total || 0} Leads bereits angereichert
-                </p>
+                {isEnrichmentRunning ? (
+                  <>
+                    <p className="font-medium text-indigo-900">
+                      Enrichment läuft... {globalStatus?.processed}/{globalStatus?.total || '?'} ({globalStatus?.progress || 0}%)
+                    </p>
+                    <p className="text-sm text-indigo-700">
+                      {globalStatus?.currentImportSource 
+                        ? `Quelle: ${globalStatus.currentImportSource}` 
+                        : 'Alle Quellen'
+                      }
+                      {globalStatus?.errors ? ` • ${globalStatus.errors} Fehler` : ''}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-purple-900">
+                      {totalPending} Datensätze müssen noch enriched werden
+                    </p>
+                    <p className="text-sm text-purple-700">
+                      {globalStatus?.enriched || 0} von {globalStatus?.total || 0} Leads bereits angereichert
+                    </p>
+                  </>
+                )}
               </div>
             </div>
-            <button
-              onClick={() => handleStartEnrichment()}
-              disabled={enrichingSource === 'all'}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-sm"
-            >
-              {enrichingSource === 'all' ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
+            
+            {isEnrichmentRunning ? (
+              <button
+                onClick={handleStopEnrichment}
+                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
+              >
+                <Square className="w-4 h-4" />
+                <span>Stop</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleStartEnrichment()}
+                disabled={totalPending === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-sm"
+              >
                 <Sparkles className="w-4 h-4" />
-              )}
-              <span>{enrichingSource === 'all' ? 'Läuft...' : 'Alle enrichen'}</span>
-            </button>
+                <span>Alle enrichen</span>
+              </button>
+            )}
           </div>
+
+          {/* Progress bar when running */}
+          {isEnrichmentRunning && (
+            <div className="mt-3">
+              <div className="h-2 bg-indigo-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${globalStatus?.progress || 0}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start space-x-3">
+          <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <p className="text-sm">{error}</p>
         </div>
       )}
 
@@ -304,14 +376,6 @@ export default function ImportPage() {
             )}
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start space-x-3">
-              <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-
           {/* Success Stats */}
           {stats && (
             <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
@@ -369,54 +433,70 @@ export default function ImportPage() {
             </div>
           ) : historyData && historyData.length > 0 ? (
             <div className="space-y-3">
-              {historyData.map((item) => (
-                <div
-                  key={item.name}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{item.name}</p>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(item.lastImport).toLocaleDateString('de-DE')}
-                        </span>
-                        <span>{item.total} Leads</span>
+              {historyData.map((item) => {
+                const isThisSourceRunning = isEnrichmentRunning && globalStatus?.currentImportSource === item.name;
+                
+                return (
+                  <div
+                    key={item.name}
+                    className={`border rounded-lg p-4 transition-colors ${
+                      isThisSourceRunning 
+                        ? 'border-indigo-300 bg-indigo-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{item.name}</p>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(item.lastImport).toLocaleDateString('de-DE')}
+                          </span>
+                          <span>{item.total} Leads</span>
+                        </div>
+                      </div>
+                      
+                      {item.pending > 0 && (
+                        <button
+                          onClick={() => handleStartEnrichment(item.name)}
+                          disabled={isEnrichmentRunning}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                            isEnrichmentRunning
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          }`}
+                        >
+                          {isThisSourceRunning ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          <span>{item.pending} enrichen</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Enrichment-Fortschritt</span>
+                        <span>{item.enriched}/{item.total}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isThisSourceRunning
+                              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse'
+                              : 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                          }`}
+                          style={{ width: `${(item.enriched / item.total) * 100}%` }}
+                        />
                       </div>
                     </div>
-                    
-                    {item.pending > 0 && (
-                      <button
-                        onClick={() => handleStartEnrichment(item.name)}
-                        disabled={enrichingSource === item.name}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 disabled:opacity-50 transition-colors"
-                      >
-                        {enrichingSource === item.name ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        <span>{item.pending} enrichen</span>
-                      </button>
-                    )}
                   </div>
-
-                  {/* Progress Bar */}
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Enrichment-Fortschritt</span>
-                      <span>{item.enriched}/{item.total}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all"
-                        style={{ width: `${(item.enriched / item.total) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
