@@ -61,6 +61,7 @@ CREATE TABLE leads (
   stage_id INT REFERENCES stages(id) ON DELETE SET NULL,
   assigned_to INT REFERENCES users(id) ON DELETE SET NULL,
   custom_fields JSONB DEFAULT '{}',
+  enrichment_data JSONB, -- AI-enriched data from website analysis
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

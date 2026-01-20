@@ -795,6 +795,21 @@ export default function LeadDetailPage() {
                 </div>
               )}
 
+              {/* Website Status */}
+              {leadData.enrichment_data.website_status && (
+                <div className="mb-4 flex items-center gap-2">
+                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
+                    leadData.enrichment_data.website_status === 'online' 
+                      ? 'bg-green-100 text-green-800' 
+                      : leadData.enrichment_data.website_status === 'offline'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    Website: {leadData.enrichment_data.website_status}
+                  </span>
+                </div>
+              )}
+
               <div className="space-y-4">
                 {/* Services */}
                 {Array.isArray(leadData.enrichment_data.services) && leadData.enrichment_data.services.length > 0 && (
@@ -854,13 +869,14 @@ export default function LeadDetailPage() {
                   </div>
                 )}
 
-                {/* Company Age */}
-                {leadData.enrichment_data.company_age && (
+                {/* Company Age / Founding Year */}
+                {(leadData.enrichment_data.company_age || leadData.enrichment_data.founding_year) && (
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Unternehmen</label>
+                    <label className="text-sm font-medium text-gray-700">Gründung</label>
                     <p className="mt-1 text-gray-900">
-                      {leadData.enrichment_data.company_age} Jahre alt
-                      {leadData.enrichment_data.founding_year && ` (gegründet ${leadData.enrichment_data.founding_year})`}
+                      {leadData.enrichment_data.founding_year && `Gegründet ${leadData.enrichment_data.founding_year}`}
+                      {leadData.enrichment_data.company_age && leadData.enrichment_data.founding_year && ' • '}
+                      {leadData.enrichment_data.company_age && `${leadData.enrichment_data.company_age} Jahre alt`}
                     </p>
                   </div>
                 )}

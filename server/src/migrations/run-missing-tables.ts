@@ -66,6 +66,20 @@ async function addMissingTables() {
     `);
     console.log('✓ min_score column ready');
 
+    // Add enrichment_data column to leads if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'leads' AND column_name = 'enrichment_data'
+        ) THEN
+          ALTER TABLE leads ADD COLUMN enrichment_data JSONB;
+        END IF;
+      END $$;
+    `);
+    console.log('✓ enrichment_data column ready');
+
     // Create indexes if not exists
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_saved_filters_user_id ON saved_filters(user_id);
