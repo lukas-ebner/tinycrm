@@ -85,7 +85,7 @@ export default function LeadDetailPage() {
   });
 
   // Fetch users (for assigned_to)
-  const { data: usersData } = useQuery({
+  const { data: usersData, error: usersError } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const response = await api.get('/users');
@@ -93,6 +93,13 @@ export default function LeadDetailPage() {
     },
     enabled: user?.role === 'admin',
   });
+
+  // Debug logging
+  console.log('Current user:', user);
+  console.log('User role:', user?.role);
+  console.log('Is admin:', user?.role === 'admin');
+  console.log('Users data:', usersData);
+  console.log('Users error:', usersError);
 
   // Fetch custom fields
   const { data: customFieldsData } = useQuery({
@@ -517,6 +524,20 @@ export default function LeadDetailPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* DEBUG: Show why assignment field might be hidden */}
+              {user?.role !== 'admin' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  <p className="text-sm text-yellow-800">
+                    <strong>DEBUG:</strong> Assignment field not visible. Current role: {user?.role || 'undefined'}
+                  </p>
+                  {usersError && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Users API Error: {(usersError as any)?.message || 'Unknown error'}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
