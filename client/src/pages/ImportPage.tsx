@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 
 interface ImportStats {
@@ -9,12 +9,22 @@ interface ImportStats {
   skipped: number;
 }
 
+interface EnrichmentStatus {
+  pending: number;
+  enriched: number;
+  total: number;
+}
+
 export default function ImportPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichmentStarted, setEnrichmentStarted] = useState(false);
+  const [lastImportedFilename, setLastImportedFilename] = useState('');
   const [error, setError] = useState('');
   const [stats, setStats] = useState<ImportStats | null>(null);
+  const [enrichmentStatus, setEnrichmentStatus] = useState<EnrichmentStatus | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -82,6 +92,17 @@ export default function ImportPage() {
       });
 
       setStats(response.data.stats);
+      setLastImportedFilename(selectedFile.name);
+      setEnrichmentStarted(false);
+      
+      // Fetch enrichment status for this import
+      try {
+        const statusRes = await api.get(`/enrichment/status?import_source=${encodeURIComponent(selectedFile.name)}`);
+        setEnrichmentStatus(statusRes.data);
+      } catch {
+        // Ignore status error
+      }
+      
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -90,6 +111,23 @@ export default function ImportPage() {
       setError(err.response?.data?.error || 'Failed to import CSV');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleStartEnrichment = async () => {
+    if (!lastImportedFilename) return;
+    
+    setIsEnriching(true);
+    try {
+      await api.post('/enrichment/batch', {
+        import_source: lastImportedFilename,
+        limit: 100
+      });
+      setEnrichmentStarted(true);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to start enrichment');
+    } finally {
+      setIsEnriching(false);
     }
   };
 
@@ -244,6 +282,42 @@ export default function ImportPage() {
                 <p className="text-2xl font-bold text-gray-600">{stats.skipped}</p>
               </div>
             </div>
+
+            {/* Enrichment Section */}
+            {enrichmentStatus && enrichmentStatus.pending > 0 && (
+              <div className="mt-6 pt-6 border-t border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-green-900 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      KI-Enrichment verfügbar
+                    </p>
+                    <p className="text-sm text-green-700 mt-1">
+                      {enrichmentStatus.pending} von {enrichmentStatus.total} Leads können angereichert werden
+                    </p>
+                  </div>
+                  {enrichmentStarted ? (
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm">Enrichment läuft im Hintergrund...</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleStartEnrichment}
+                      disabled={isEnriching}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 transition-all"
+                    >
+                      {isEnriching ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      <span>{isEnriching ? 'Starte...' : 'Enrichment starten'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

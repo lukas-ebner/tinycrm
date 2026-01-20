@@ -12,6 +12,7 @@ import customFieldRoutes from './routes/customFields.js';
 import csvRoutes from './routes/csv.js';
 import contactRoutes from './routes/contacts.js';
 import savedFiltersRoutes from './routes/savedFilters.js';
+import enrichmentRoutes from './routes/enrichment.js';
 import { initializeReminderStages } from './controllers/stages.js';
 
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/custom-fields', customFieldRoutes);
 app.use('/api/csv', csvRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/saved-filters', savedFiltersRoutes);
+app.use('/api/enrichment', enrichmentRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
