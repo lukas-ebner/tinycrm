@@ -2,11 +2,21 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth.js';
 import pool from '../db/config.js';
 
-// Get all saved filters for the current user
+// Get all saved filters for the current user (own + assigned to them)
 export const getUserFilters = async (req: AuthRequest, res: Response) => {
   try {
+    // Show filters that:
+    // 1. User created themselves
+    // 2. Were assigned to this user by an admin (for_user_id)
+    // 3. Are marked as shared (is_shared = true)
     const result = await pool.query(
-      'SELECT * FROM saved_filters WHERE user_id = $1 ORDER BY name ASC',
+      `SELECT sf.*, u.name as created_by_name 
+       FROM saved_filters sf
+       LEFT JOIN users u ON sf.user_id = u.id
+       WHERE sf.user_id = $1 
+          OR sf.for_user_id = $1 
+          OR sf.is_shared = true
+       ORDER BY sf.name ASC`,
       [req.user?.id]
     );
     res.json({ filters: result.rows });
@@ -19,7 +29,7 @@ export const getUserFilters = async (req: AuthRequest, res: Response) => {
 // Create a new saved filter
 export const createFilter = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source } = req.body;
+    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source, for_user_id, is_shared } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -30,10 +40,15 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Tags must be an array' });
     }
 
+    // Only admins can create filters for other users or shared filters
+    if ((for_user_id || is_shared) && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can assign filters to users or share them' });
+    }
+
     const result = await pool.query(
       `INSERT INTO saved_filters
-       (user_id, name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (user_id, name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source, for_user_id, is_shared)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
         req.user?.id,
@@ -46,7 +61,9 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
         city || null,
         zip || null,
         min_score || null,
-        import_source || null
+        import_source || null,
+        for_user_id || null,
+        is_shared || false
       ]
     );
 
@@ -61,9 +78,9 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
 export const updateFilter = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source } = req.body;
+    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source, for_user_id, is_shared } = req.body;
 
-    // Check ownership
+    // Check ownership (admins can edit any filter)
     const filterCheck = await pool.query(
       'SELECT id, user_id FROM saved_filters WHERE id = $1',
       [id]
@@ -73,7 +90,7 @@ export const updateFilter = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Filter not found' });
     }
 
-    if (filterCheck.rows[0].user_id !== req.user?.id) {
+    if (filterCheck.rows[0].user_id !== req.user?.id && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -96,6 +113,12 @@ export const updateFilter = async (req: AuthRequest, res: Response) => {
     if (zip !== undefined) { updates.push(`zip = $${paramCount++}`); values.push(zip); }
     if (min_score !== undefined) { updates.push(`min_score = $${paramCount++}`); values.push(min_score); }
     if (import_source !== undefined) { updates.push(`import_source = $${paramCount++}`); values.push(import_source); }
+    if (for_user_id !== undefined && req.user?.role === 'admin') { 
+      updates.push(`for_user_id = $${paramCount++}`); values.push(for_user_id); 
+    }
+    if (is_shared !== undefined && req.user?.role === 'admin') { 
+      updates.push(`is_shared = $${paramCount++}`); values.push(is_shared); 
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -121,7 +144,7 @@ export const deleteFilter = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Check ownership
+    // Check ownership (admins can delete any filter)
     const filterCheck = await pool.query(
       'SELECT id, user_id FROM saved_filters WHERE id = $1',
       [id]
@@ -131,7 +154,7 @@ export const deleteFilter = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Filter not found' });
     }
 
-    if (filterCheck.rows[0].user_id !== req.user?.id) {
+    if (filterCheck.rows[0].user_id !== req.user?.id && req.user?.role !== 'admin') {
       return res.status(403).json({ error: 'Access denied' });
     }
 

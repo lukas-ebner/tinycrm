@@ -114,6 +114,34 @@ async function addMissingTables() {
     `);
     console.log('✓ saved_filters.import_source column ready');
 
+    // Add for_user_id column to saved_filters (for assigning filters to specific users)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'saved_filters' AND column_name = 'for_user_id'
+        ) THEN
+          ALTER TABLE saved_filters ADD COLUMN for_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+    console.log('✓ saved_filters.for_user_id column ready');
+
+    // Add is_shared column to saved_filters (for sharing filters with all users)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'saved_filters' AND column_name = 'is_shared'
+        ) THEN
+          ALTER TABLE saved_filters ADD COLUMN is_shared BOOLEAN DEFAULT FALSE;
+        END IF;
+      END $$;
+    `);
+    console.log('✓ saved_filters.is_shared column ready');
+
     // Create indexes if not exists
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_saved_filters_user_id ON saved_filters(user_id);

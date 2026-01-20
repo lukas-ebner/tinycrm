@@ -21,6 +21,8 @@ export default function LeadsPage() {
   const [selectedFilterForBulkAssign, setSelectedFilterForBulkAssign] = useState<SavedFilter | null>(null);
   const [bulkAssignUser, setBulkAssignUser] = useState('');
   const [newFilterName, setNewFilterName] = useState('');
+  const [filterForUser, setFilterForUser] = useState('');
+  const [filterIsShared, setFilterIsShared] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -101,6 +103,8 @@ export default function LeadsPage() {
       zip?: string;
       min_score?: number;
       import_source?: string;
+      for_user_id?: number;
+      is_shared?: boolean;
     }) => {
       const response = await api.post('/saved-filters', data);
       return response.data;
@@ -180,7 +184,12 @@ export default function LeadsPage() {
         tags: tagsFilter.length > 0 ? tagsFilter : undefined,
         min_score: scoreFilter ? parseInt(scoreFilter) : undefined,
         import_source: importSourceFilter || undefined,
+        for_user_id: filterForUser ? parseInt(filterForUser) : undefined,
+        is_shared: filterIsShared,
       });
+      // Reset additional fields
+      setFilterForUser('');
+      setFilterIsShared(false);
     }
   };
 
@@ -483,31 +492,67 @@ export default function LeadsPage() {
       {showSaveFilterModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Save Current Filter</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter speichern</h3>
             <input
               type="text"
-              placeholder="Filter name (e.g. 'Berlin GmbH Leads')"
+              placeholder="Filter-Name (z.B. 'Berlin IT')"
               value={newFilterName}
               onChange={(e) => setNewFilterName(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4"
               autoFocus
             />
+
+            {/* Admin: Assign to User or Share */}
+            {user?.role === 'admin' && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs font-medium text-blue-800 mb-2">Admin-Optionen</p>
+                
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Für User erstellen
+                  </label>
+                  <select
+                    value={filterForUser}
+                    onChange={(e) => setFilterForUser(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+                  >
+                    <option value="">Für mich selbst</option>
+                    {usersData?.filter(u => u.id !== user.id).map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={filterIsShared}
+                    onChange={(e) => setFilterIsShared(e.target.checked)}
+                    className="w-4 h-4 text-amber-600 border-gray-300 rounded"
+                  />
+                  <span className="text-gray-700">Für alle User sichtbar</span>
+                </label>
+              </div>
+            )}
+
             <div className="text-sm text-gray-600 mb-4">
-              <strong>Current filters:</strong>
-              <ul className="mt-2 space-y-1">
-                {search && <li>• Search: "{search}"</li>}
+              <strong>Aktive Filter:</strong>
+              <ul className="mt-2 space-y-1 text-xs">
+                {search && <li>• Suche: "{search}"</li>}
                 {stageFilter && (
                   <li>• Stage: {stages.find((s: any) => s.id === parseInt(stageFilter))?.name}</li>
                 )}
                 {assignedToFilter && (
-                  <li>• Assigned To: {usersData?.find(u => u.id === parseInt(assignedToFilter))?.name || 'Unassigned'}</li>
+                  <li>• Zugewiesen: {usersData?.find(u => u.id === parseInt(assignedToFilter))?.name || 'Nicht zugewiesen'}</li>
                 )}
                 {scoreFilter && (
                   <li>• Min. Score: {'⭐'.repeat(parseInt(scoreFilter))} ({scoreFilter}/5)</li>
                 )}
                 {naceCodeFilter && <li>• NACE Code: {naceCodeFilter}</li>}
-                {cityFilter && <li>• City: {cityFilter}</li>}
-                {zipFilter && <li>• ZIP: {zipFilter}</li>}
+                {cityFilter && <li>• Stadt: {cityFilter}</li>}
+                {zipFilter && <li>• PLZ: {zipFilter}</li>}
                 {tagsFilter.length > 0 && (
                   <li>• Tags: {tagsFilter.join(', ')}</li>
                 )}
@@ -516,7 +561,7 @@ export default function LeadsPage() {
                 )}
                 {!search && !stageFilter && !assignedToFilter && !naceCodeFilter &&
                  !cityFilter && !zipFilter && !scoreFilter && !importSourceFilter && tagsFilter.length === 0 && (
-                  <li>• No filters active</li>
+                  <li className="text-gray-400">Keine Filter aktiv</li>
                 )}
               </ul>
             </div>
@@ -525,17 +570,19 @@ export default function LeadsPage() {
                 onClick={() => {
                   setShowSaveFilterModal(false);
                   setNewFilterName('');
+                  setFilterForUser('');
+                  setFilterIsShared(false);
                 }}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 onClick={handleSaveCurrentFilter}
                 disabled={!newFilterName.trim() || createFilterMutation.isPending}
                 className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
               >
-                {createFilterMutation.isPending ? 'Saving...' : 'Save'}
+                {createFilterMutation.isPending ? 'Speichern...' : 'Speichern'}
               </button>
             </div>
           </div>
