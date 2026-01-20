@@ -797,7 +797,7 @@ export default function LeadDetailPage() {
 
               <div className="space-y-4">
                 {/* Services */}
-                {leadData.enrichment_data.services && leadData.enrichment_data.services.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.services) && leadData.enrichment_data.services.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Services & Leistungen</label>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -811,7 +811,7 @@ export default function LeadDetailPage() {
                 )}
 
                 {/* Products */}
-                {leadData.enrichment_data.products && leadData.enrichment_data.products.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.products) && leadData.enrichment_data.products.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Produkte</label>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -825,7 +825,7 @@ export default function LeadDetailPage() {
                 )}
 
                 {/* Technologies */}
-                {leadData.enrichment_data.technologies && leadData.enrichment_data.technologies.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.technologies) && leadData.enrichment_data.technologies.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Technologien</label>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -866,7 +866,7 @@ export default function LeadDetailPage() {
                 )}
 
                 {/* Clients */}
-                {leadData.enrichment_data.clients && leadData.enrichment_data.clients.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.clients) && leadData.enrichment_data.clients.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Bekannte Kunden</label>
                     <ul className="mt-2 space-y-1">
@@ -881,7 +881,7 @@ export default function LeadDetailPage() {
                 )}
 
                 {/* Recent Events */}
-                {leadData.enrichment_data.recent_events && leadData.enrichment_data.recent_events.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.recent_events) && leadData.enrichment_data.recent_events.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Aktuelle Ereignisse</label>
                     <ul className="mt-2 space-y-2">
@@ -895,7 +895,7 @@ export default function LeadDetailPage() {
                 )}
 
                 {/* Suitability Reasons */}
-                {leadData.enrichment_data.suitability_reasons && leadData.enrichment_data.suitability_reasons.length > 0 && (
+                {Array.isArray(leadData.enrichment_data.suitability_reasons) && leadData.enrichment_data.suitability_reasons.length > 0 && (
                   <div>
                     <label className="text-sm font-medium text-gray-700">Bewertung</label>
                     <ul className="mt-2 space-y-1">
@@ -1071,7 +1071,7 @@ export default function LeadDetailPage() {
               disabled={addTagMutation.isPending}
             >
               <option value="">+ Add tag...</option>
-              {allTagsData?.filter(tag => !leadData.tags?.some(lt => lt.id === tag.id)).map((tag) => (
+              {allTagsData?.filter(tag => !Array.isArray(leadData.tags) || !leadData.tags.some(lt => lt.id === tag.id)).map((tag) => (
                 <option key={tag.id} value={tag.id}>
                   {tag.name}
                 </option>
@@ -1080,7 +1080,7 @@ export default function LeadDetailPage() {
 
             {/* Current tags */}
             <div className="flex flex-wrap gap-2">
-              {leadData.tags && leadData.tags.length > 0 ? (
+              {Array.isArray(leadData.tags) && leadData.tags.length > 0 ? (
                 leadData.tags.map((tag: Tag) => (
                   <span
                     key={tag.id}
@@ -1148,7 +1148,7 @@ export default function LeadDetailPage() {
             )}
 
             <div className="space-y-3">
-              {leadData.notes && leadData.notes.length > 0 ? (
+              {Array.isArray(leadData.notes) && leadData.notes.length > 0 ? (
                 leadData.notes.map((note: Note) => (
                   <div key={note.id} className="border-l-4 border-primary pl-3 py-2">
                     <p className="text-sm text-gray-900">{note.content}</p>
@@ -1410,7 +1410,7 @@ export default function LeadDetailPage() {
             )}
 
             <div className="space-y-2">
-              {leadData.reminders && leadData.reminders.length > 0 ? (
+              {Array.isArray(leadData.reminders) && leadData.reminders.length > 0 ? (
                 leadData.reminders.map((reminder: Reminder) => (
                   <div
                     key={reminder.id}
