@@ -155,6 +155,39 @@ export const getImportSources = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get import history with stats
+export const getImportHistory = async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        import_source,
+        COUNT(*) as total_leads,
+        COUNT(*) FILTER (WHERE enrichment_data IS NOT NULL) as enriched_leads,
+        COUNT(*) FILTER (WHERE enrichment_data IS NULL) as pending_enrichment,
+        MIN(created_at) as first_import,
+        MAX(created_at) as last_import
+      FROM leads 
+      WHERE import_source IS NOT NULL 
+      GROUP BY import_source
+      ORDER BY MAX(created_at) DESC
+    `);
+    
+    res.json({ 
+      imports: result.rows.map(r => ({
+        name: r.import_source,
+        total: parseInt(r.total_leads),
+        enriched: parseInt(r.enriched_leads),
+        pending: parseInt(r.pending_enrichment),
+        firstImport: r.first_import,
+        lastImport: r.last_import
+      }))
+    });
+  } catch (error) {
+    console.error('Get import history error:', error);
+    res.status(500).json({ error: 'Failed to fetch import history' });
+  }
+};
+
 export const getImportTemplate = (req: AuthRequest, res: Response) => {
   const template = `Name;Rechtsform;PLZ;Ort;Straße;Tel.;E-Mail;Website;Branche (NACE);Gegenstand;Ges. Vertreter 1;Ges. Vertreter 2;Umsatz EUR;Mitarbeiterzahl;North Data URL;Register-ID
 Beispiel GmbH;GmbH;93047;Regensburg;Musterstraße 1;+49 941 123456;info@beispiel.de;https://beispiel.de;62.01;Softwareentwicklung;Max Mustermann;;500000;10;https://www.northdata.de/...;HRB 12345`;

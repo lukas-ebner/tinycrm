@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { importCSV, getImportTemplate, getImportSources } from '../controllers/csv.js';
+import { importCSV, getImportTemplate, getImportSources, getImportHistory } from '../controllers/csv.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -26,5 +26,6 @@ router.use(requireAdmin);
 router.post('/import', upload.single('file'), importCSV);
 router.get('/template', getImportTemplate);
 router.get('/sources', getImportSources);
+router.get('/history', getImportHistory);
 
 export default router;
