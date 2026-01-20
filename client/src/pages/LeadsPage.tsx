@@ -15,6 +15,7 @@ export default function LeadsPage() {
   const [zipFilter, setZipFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState<string[]>([]);
   const [scoreFilter, setScoreFilter] = useState('');
+  const [importSourceFilter, setImportSourceFilter] = useState('');
   const [showSaveFilterModal, setShowSaveFilterModal] = useState(false);
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
   const [selectedFilterForBulkAssign, setSelectedFilterForBulkAssign] = useState<SavedFilter | null>(null);
@@ -24,7 +25,7 @@ export default function LeadsPage() {
   const { user } = useAuth();
 
   const { data: leadsData, isLoading } = useQuery({
-    queryKey: ['leads', search, stageFilter, assignedToFilter, naceCodeFilter, cityFilter, zipFilter, tagsFilter, scoreFilter],
+    queryKey: ['leads', search, stageFilter, assignedToFilter, naceCodeFilter, cityFilter, zipFilter, tagsFilter, scoreFilter, importSourceFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
@@ -35,6 +36,7 @@ export default function LeadsPage() {
       if (zipFilter) params.append('zip', zipFilter);
       if (tagsFilter.length > 0) params.append('tags', tagsFilter.join(','));
       if (scoreFilter) params.append('min_score', scoreFilter);
+      if (importSourceFilter) params.append('import_source', importSourceFilter);
       const response = await api.get(`/leads?${params}`);
       return response.data;
     },
@@ -67,6 +69,16 @@ export default function LeadsPage() {
     },
   });
 
+  // Fetch import sources
+  const { data: importSourcesData } = useQuery({
+    queryKey: ['importSources'],
+    queryFn: async () => {
+      const response = await api.get('/csv/sources');
+      return response.data.sources as string[];
+    },
+    enabled: user?.role === 'admin',
+  });
+
   // Fetch saved filters
   const { data: savedFiltersData } = useQuery({
     queryKey: ['savedFilters'],
@@ -88,6 +100,7 @@ export default function LeadsPage() {
       city?: string;
       zip?: string;
       min_score?: number;
+      import_source?: string;
     }) => {
       const response = await api.post('/saved-filters', data);
       return response.data;
@@ -150,6 +163,7 @@ export default function LeadsPage() {
     setZipFilter(filter.zip || '');
     setTagsFilter(filter.tags || []);
     setScoreFilter(filter.min_score?.toString() || '');
+    setImportSourceFilter(filter.import_source || '');
   };
 
   // Save current filter
@@ -165,6 +179,7 @@ export default function LeadsPage() {
         zip: zipFilter || undefined,
         tags: tagsFilter.length > 0 ? tagsFilter : undefined,
         min_score: scoreFilter ? parseInt(scoreFilter) : undefined,
+        import_source: importSourceFilter || undefined,
       });
     }
   };
@@ -203,6 +218,9 @@ export default function LeadsPage() {
     }
     if (selectedFilterForBulkAssign.min_score) {
       params.append('min_score', selectedFilterForBulkAssign.min_score.toString());
+    }
+    if (selectedFilterForBulkAssign.import_source) {
+      params.append('import_source', selectedFilterForBulkAssign.import_source);
     }
 
     try {
@@ -407,6 +425,24 @@ export default function LeadsPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-600"
             />
           </div>
+          {/* Import Source (Admin only) */}
+          {user?.role === 'admin' && importSourcesData && importSourcesData.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Import-Datei</label>
+              <select
+                value={importSourceFilter}
+                onChange={(e) => setImportSourceFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-600"
+              >
+                <option value="">Alle Dateien</option>
+                {importSourcesData.map((source) => (
+                  <option key={source} value={source}>
+                    {source}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Tags Multi-Select */}
@@ -473,8 +509,11 @@ export default function LeadsPage() {
                 {tagsFilter.length > 0 && (
                   <li>• Tags: {tagsFilter.join(', ')}</li>
                 )}
+                {importSourceFilter && (
+                  <li>• Import-Datei: {importSourceFilter}</li>
+                )}
                 {!search && !stageFilter && !assignedToFilter && !naceCodeFilter &&
-                 !cityFilter && !zipFilter && !scoreFilter && tagsFilter.length === 0 && (
+                 !cityFilter && !zipFilter && !scoreFilter && !importSourceFilter && tagsFilter.length === 0 && (
                   <li>• No filters active</li>
                 )}
               </ul>

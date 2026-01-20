@@ -80,6 +80,40 @@ async function addMissingTables() {
     `);
     console.log('✓ enrichment_data column ready');
 
+    // Add import_source column to leads if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'leads' AND column_name = 'import_source'
+        ) THEN
+          ALTER TABLE leads ADD COLUMN import_source VARCHAR(255);
+        END IF;
+      END $$;
+    `);
+    console.log('✓ import_source column ready');
+
+    // Create index for import_source
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_leads_import_source ON leads(import_source);
+    `);
+    console.log('✓ import_source index ready');
+
+    // Add import_source column to saved_filters if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'saved_filters' AND column_name = 'import_source'
+        ) THEN
+          ALTER TABLE saved_filters ADD COLUMN import_source VARCHAR(255);
+        END IF;
+      END $$;
+    `);
+    console.log('✓ saved_filters.import_source column ready');
+
     // Create indexes if not exists
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_saved_filters_user_id ON saved_filters(user_id);

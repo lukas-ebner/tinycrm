@@ -123,6 +123,7 @@ export interface SavedFilter {
   city?: string;
   zip?: string;
   min_score?: number;
+  import_source?: string;
   created_at: string;
   updated_at: string;
 }

@@ -10,6 +10,9 @@ export const importCSV = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Get original filename for import_source tracking
+    const importSource = req.file.originalname || 'unknown.csv';
+
     // Decode Windows-1252 to UTF-8
     const fileContent = iconv.decode(req.file.buffer, 'windows-1252');
 
@@ -72,7 +75,7 @@ export const importCSV = async (req: AuthRequest, res: Response) => {
           );
 
           if (existing.rows.length > 0) {
-            // Update existing lead
+            // Update existing lead (keep original import_source, don't overwrite)
             await client.query(
               `UPDATE leads SET
                 name = $1, legal_form = $2, zip = $3, city = $4, street = $5,
@@ -89,17 +92,17 @@ export const importCSV = async (req: AuthRequest, res: Response) => {
             );
             updated++;
           } else {
-            // Insert new lead
+            // Insert new lead with import_source
             await client.query(
               `INSERT INTO leads (
                 register_id, name, legal_form, zip, city, street, phone, email,
                 website, nace_code, business_purpose, ceo_1, ceo_2,
-                revenue_eur, employee_count, northdata_url, stage_id
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+                revenue_eur, employee_count, northdata_url, stage_id, import_source
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
               [
                 registerId, name, legalForm, zip, city, street, phone, email,
                 website, naceCode, businessPurpose, ceo1, ceo2,
-                revenueEur, employeeCount, northdataUrl, defaultStageId
+                revenueEur, employeeCount, northdataUrl, defaultStageId, importSource
               ]
             );
             imported++;
@@ -130,6 +133,25 @@ export const importCSV = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('CSV import error:', error);
     res.status(500).json({ error: 'Failed to import CSV' });
+  }
+};
+
+// Get list of all import sources for filtering
+export const getImportSources = async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT import_source 
+      FROM leads 
+      WHERE import_source IS NOT NULL 
+      ORDER BY import_source ASC
+    `);
+    
+    res.json({ 
+      sources: result.rows.map(r => r.import_source) 
+    });
+  } catch (error) {
+    console.error('Get import sources error:', error);
+    res.status(500).json({ error: 'Failed to fetch import sources' });
   }
 };
 

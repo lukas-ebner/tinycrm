@@ -4,7 +4,7 @@ import pool from '../db/config.js';
 
 export const getAllLeads = async (req: AuthRequest, res: Response) => {
   try {
-    const { stage_id, assigned_to, tag, tags, search, nace_code, city, zip, min_score } = req.query;
+    const { stage_id, assigned_to, tag, tags, search, nace_code, city, zip, min_score, import_source } = req.query;
 
     let query = `
       SELECT
@@ -69,6 +69,12 @@ export const getAllLeads = async (req: AuthRequest, res: Response) => {
     if (min_score) {
       conditions.push(`(l.enrichment_data->>'suitability_score')::int >= $${paramCount++}`);
       values.push(parseInt(min_score as string));
+    }
+
+    // Import source filter
+    if (import_source) {
+      conditions.push(`l.import_source = $${paramCount++}`);
+      values.push(import_source);
     }
 
     // Multi-tag filter (AND logic - lead must have ALL specified tags)
@@ -566,6 +572,12 @@ export const bulkAssignFromFilter = async (req: AuthRequest, res: Response) => {
     if (filter.min_score) {
       conditions.push(`(l.enrichment_data->>'suitability_score')::int >= $${paramCount++}`);
       values.push(filter.min_score);
+    }
+
+    // Import source filter
+    if (filter.import_source) {
+      conditions.push(`l.import_source = $${paramCount++}`);
+      values.push(filter.import_source);
     }
 
     if (conditions.length > 0) {

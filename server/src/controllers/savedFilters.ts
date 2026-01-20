@@ -19,7 +19,7 @@ export const getUserFilters = async (req: AuthRequest, res: Response) => {
 // Create a new saved filter
 export const createFilter = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score } = req.body;
+    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -32,8 +32,8 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
 
     const result = await pool.query(
       `INSERT INTO saved_filters
-       (user_id, name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (user_id, name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         req.user?.id,
@@ -45,7 +45,8 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
         tags ? JSON.stringify(tags) : '[]',
         city || null,
         zip || null,
-        min_score || null
+        min_score || null,
+        import_source || null
       ]
     );
 
@@ -60,7 +61,7 @@ export const createFilter = async (req: AuthRequest, res: Response) => {
 export const updateFilter = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score } = req.body;
+    const { name, search, stage_id, nace_code, assigned_to, tags, city, zip, min_score, import_source } = req.body;
 
     // Check ownership
     const filterCheck = await pool.query(
@@ -94,6 +95,7 @@ export const updateFilter = async (req: AuthRequest, res: Response) => {
     if (city !== undefined) { updates.push(`city = $${paramCount++}`); values.push(city); }
     if (zip !== undefined) { updates.push(`zip = $${paramCount++}`); values.push(zip); }
     if (min_score !== undefined) { updates.push(`min_score = $${paramCount++}`); values.push(min_score); }
+    if (import_source !== undefined) { updates.push(`import_source = $${paramCount++}`); values.push(import_source); }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });

@@ -62,6 +62,7 @@ CREATE TABLE leads (
   assigned_to INT REFERENCES users(id) ON DELETE SET NULL,
   custom_fields JSONB DEFAULT '{}',
   enrichment_data JSONB, -- AI-enriched data from website analysis
+  import_source VARCHAR(255), -- Original CSV filename for filtering
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -137,6 +138,7 @@ CREATE TABLE saved_filters (
   city TEXT,
   zip TEXT,
   min_score INTEGER,
+  import_source VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
