@@ -11,6 +11,9 @@ export default function KanbanPage() {
   const [scoreFilter, setScoreFilter] = useState('');
   const [importSourceFilter, setImportSourceFilter] = useState('');
   const [tagsFilter, setTagsFilter] = useState<string[]>([]);
+  const [cityFilter, setCityFilter] = useState('');
+  const [naceCodeFilter, setNaceCodeFilter] = useState('');
+  const [zipFilter, setZipFilter] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [modalLeadIds, setModalLeadIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
@@ -31,13 +34,16 @@ export default function KanbanPage() {
 
   // Fetch leads with filters
   const { data: leadsData, isLoading: leadsLoading } = useQuery({
-    queryKey: ['leads', search, scoreFilter, importSourceFilter, tagsFilter],
+    queryKey: ['leads', search, scoreFilter, importSourceFilter, tagsFilter, cityFilter, naceCodeFilter, zipFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (scoreFilter) params.append('min_score', scoreFilter);
       if (importSourceFilter) params.append('import_source', importSourceFilter);
       if (tagsFilter.length > 0) params.append('tags', tagsFilter.join(','));
+      if (cityFilter) params.append('city', cityFilter);
+      if (naceCodeFilter) params.append('nace_code', naceCodeFilter);
+      if (zipFilter) params.append('zip', zipFilter);
       const response = await api.get(`/leads?${params}`);
       return response.data;
     },
@@ -83,6 +89,9 @@ export default function KanbanPage() {
     setScoreFilter(filter.min_score?.toString() || '');
     setImportSourceFilter(filter.import_source || '');
     setTagsFilter(filter.tags || []);
+    setCityFilter(filter.city || '');
+    setNaceCodeFilter(filter.nace_code || '');
+    setZipFilter(filter.zip || '');
   };
 
   // Clear active filter
@@ -92,6 +101,9 @@ export default function KanbanPage() {
     setScoreFilter('');
     setImportSourceFilter('');
     setTagsFilter([]);
+    setCityFilter('');
+    setNaceCodeFilter('');
+    setZipFilter('');
   };
 
   // Group leads by stage
