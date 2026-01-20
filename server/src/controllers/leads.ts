@@ -73,8 +73,12 @@ export const getAllLeads = async (req: AuthRequest, res: Response) => {
 
     // Import source filter
     if (import_source) {
-      conditions.push(`l.import_source = $${paramCount++}`);
-      values.push(import_source);
+      if (import_source === '__none__') {
+        conditions.push(`l.import_source IS NULL`);
+      } else {
+        conditions.push(`l.import_source = $${paramCount++}`);
+        values.push(import_source);
+      }
     }
 
     // Multi-tag filter (AND logic - lead must have ALL specified tags)
@@ -576,8 +580,12 @@ export const bulkAssignFromFilter = async (req: AuthRequest, res: Response) => {
 
     // Import source filter
     if (filter.import_source) {
-      conditions.push(`l.import_source = $${paramCount++}`);
-      values.push(filter.import_source);
+      if (filter.import_source === '__none__') {
+        conditions.push(`l.import_source IS NULL`);
+      } else {
+        conditions.push(`l.import_source = $${paramCount++}`);
+        values.push(filter.import_source);
+      }
     }
 
     if (conditions.length > 0) {

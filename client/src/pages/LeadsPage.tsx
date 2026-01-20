@@ -426,7 +426,7 @@ export default function LeadsPage() {
             />
           </div>
           {/* Import Source (Admin only) */}
-          {user?.role === 'admin' && importSourcesData && importSourcesData.length > 0 && (
+          {user?.role === 'admin' && (
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Import-Datei</label>
               <select
@@ -435,7 +435,8 @@ export default function LeadsPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-amber-600"
               >
                 <option value="">Alle Dateien</option>
-                {importSourcesData.map((source) => (
+                <option value="__none__">Ohne Import-Quelle</option>
+                {importSourcesData?.map((source) => (
                   <option key={source} value={source}>
                     {source}
                   </option>
