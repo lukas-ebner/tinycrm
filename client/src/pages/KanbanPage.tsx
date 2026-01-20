@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Bookmark, X } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, Stage } from '@/types/index';
+import type { Lead, Stage, SavedFilter } from '@/types/index';
 import LeadDetailModal from '@/components/LeadDetailModal';
 
 export default function KanbanPage() {
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<SavedFilter | null>(null);
+  const [scoreFilter, setScoreFilter] = useState('');
+  const [importSourceFilter, setImportSourceFilter] = useState('');
+  const [tagsFilter, setTagsFilter] = useState<string[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [modalLeadIds, setModalLeadIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
@@ -25,12 +29,15 @@ export default function KanbanPage() {
     updateStages();
   }, [queryClient]);
 
-  // Fetch leads
+  // Fetch leads with filters
   const { data: leadsData, isLoading: leadsLoading } = useQuery({
-    queryKey: ['leads', search],
+    queryKey: ['leads', search, scoreFilter, importSourceFilter, tagsFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
+      if (scoreFilter) params.append('min_score', scoreFilter);
+      if (importSourceFilter) params.append('import_source', importSourceFilter);
+      if (tagsFilter.length > 0) params.append('tags', tagsFilter.join(','));
       const response = await api.get(`/leads?${params}`);
       return response.data;
     },
@@ -42,6 +49,15 @@ export default function KanbanPage() {
     queryFn: async () => {
       const response = await api.get('/stages');
       return response.data;
+    },
+  });
+
+  // Fetch saved filters
+  const { data: savedFiltersData } = useQuery({
+    queryKey: ['savedFilters'],
+    queryFn: async () => {
+      const response = await api.get('/saved-filters');
+      return response.data.filters as SavedFilter[];
     },
   });
 
@@ -58,6 +74,25 @@ export default function KanbanPage() {
 
   const leads: Lead[] = leadsData?.leads || [];
   const stages: Stage[] = stagesData?.stages || [];
+  const savedFilters = savedFiltersData || [];
+
+  // Load a saved filter
+  const handleLoadFilter = (filter: SavedFilter) => {
+    setActiveFilter(filter);
+    setSearch(filter.search || '');
+    setScoreFilter(filter.min_score?.toString() || '');
+    setImportSourceFilter(filter.import_source || '');
+    setTagsFilter(filter.tags || []);
+  };
+
+  // Clear active filter
+  const handleClearFilter = () => {
+    setActiveFilter(null);
+    setSearch('');
+    setScoreFilter('');
+    setImportSourceFilter('');
+    setTagsFilter([]);
+  };
 
   // Group leads by stage
   const leadsByStage = stages.reduce((acc, stage) => {
@@ -111,9 +146,49 @@ export default function KanbanPage() {
 
   return (
     <div className="p-8 h-screen flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Kanban Board</h1>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Kanban Board</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {leads.length} Leads angezeigt
+            {activeFilter && <span className="text-amber-600"> • Filter: {activeFilter.name}</span>}
+          </p>
+        </div>
       </div>
+
+      {/* Saved Filters */}
+      {savedFilters.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Bookmark className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Filter:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {savedFilters.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => handleLoadFilter(filter)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  activeFilter?.id === filter.id
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {filter.name}
+              </button>
+            ))}
+            {activeFilter && (
+              <button
+                onClick={handleClearFilter}
+                className="px-3 py-1.5 text-sm rounded-lg bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-1"
+              >
+                <X className="w-3.5 h-3.5" />
+                Filter zurücksetzen
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-6">
@@ -121,9 +196,12 @@ export default function KanbanPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search leads..."
+            placeholder="Leads suchen..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setActiveFilter(null); // Clear active filter indicator when manually searching
+            }}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-amber-500 focus:border-primary"
           />
         </div>
@@ -218,7 +296,7 @@ export default function KanbanPage() {
 
                 {(!leadsByStage[stage.id] || leadsByStage[stage.id].length === 0) && (
                   <div className="text-center py-8 text-gray-400 text-sm">
-                    No leads in this stage
+                    Keine Leads in dieser Stage
                   </div>
                 )}
               </div>
@@ -230,7 +308,7 @@ export default function KanbanPage() {
             <div className="flex-shrink-0 w-80 bg-gray-100 rounded-lg p-4 flex flex-col">
               <div className="mb-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-gray-900">Unassigned</h2>
+                  <h2 className="font-semibold text-gray-900">Nicht zugewiesen</h2>
                   <span className="text-sm text-gray-500">{unassignedLeads.length}</span>
                 </div>
               </div>
@@ -274,7 +352,7 @@ export default function KanbanPage() {
 
       {updateStageMutation.isPending && (
         <div className="fixed bottom-4 right-4 bg-amber-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          Updating stage...
+          Stage wird aktualisiert...
         </div>
       )}
 

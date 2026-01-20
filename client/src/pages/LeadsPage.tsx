@@ -272,12 +272,12 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      {/* Saved Filters */}
+      {/* Saved Filters - visible for all users */}
       {savedFilters.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Bookmark className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Saved Filters:</span>
+            <span className="text-sm font-medium text-gray-700">Gespeicherte Filter:</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {savedFilters.map((filter) => (
@@ -291,8 +291,9 @@ export default function LeadsPage() {
                 >
                   {filter.name}
                 </button>
-                <div className="flex items-center space-x-1">
-                  {user?.role === 'admin' && (
+                {/* Admin actions only */}
+                {user?.role === 'admin' && (
+                  <div className="flex items-center space-x-1">
                     <button
                       onClick={() => handleOpenBulkAssign(filter)}
                       className="p-1 hover:bg-amber-100 rounded text-amber-600"
@@ -300,18 +301,18 @@ export default function LeadsPage() {
                     >
                       <Users className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFilter(filter.id, filter.name);
-                    }}
-                    className="p-1 hover:bg-red-100 rounded text-gray-500 hover:text-red-600"
-                    title="Delete filter"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFilter(filter.id, filter.name);
+                      }}
+                      className="p-1 hover:bg-red-100 rounded text-gray-500 hover:text-red-600"
+                      title="Delete filter"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
