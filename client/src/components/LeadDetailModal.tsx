@@ -30,7 +30,42 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     queryKey: ['lead', leadId],
     queryFn: async () => {
       const response = await api.get(`/leads/${leadId}`);
-      return response.data.lead as Lead;
+      const lead = response.data.lead;
+      
+      // Parse enrichment_data if it's a string (PostgreSQL JSONB edge case)
+      if (lead.enrichment_data && typeof lead.enrichment_data === 'string') {
+        try {
+          lead.enrichment_data = JSON.parse(lead.enrichment_data);
+        } catch (e) {
+          console.error('Failed to parse enrichment_data:', e);
+          lead.enrichment_data = null;
+        }
+      }
+      
+      // Ensure arrays are actually arrays
+      if (lead.tags && typeof lead.tags === 'string') {
+        try {
+          lead.tags = JSON.parse(lead.tags);
+        } catch (e) {
+          lead.tags = [];
+        }
+      }
+      if (lead.notes && typeof lead.notes === 'string') {
+        try {
+          lead.notes = JSON.parse(lead.notes);
+        } catch (e) {
+          lead.notes = [];
+        }
+      }
+      if (lead.reminders && typeof lead.reminders === 'string') {
+        try {
+          lead.reminders = JSON.parse(lead.reminders);
+        } catch (e) {
+          lead.reminders = [];
+        }
+      }
+      
+      return lead as Lead;
     },
   });
 
@@ -38,7 +73,8 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     queryKey: ['stages'],
     queryFn: async () => {
       const response = await api.get('/stages');
-      return response.data.stages as Stage[];
+      const stages = response.data.stages;
+      return Array.isArray(stages) ? stages as Stage[] : [];
     },
   });
 

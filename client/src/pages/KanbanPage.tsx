@@ -291,7 +291,7 @@ export default function KanbanPage() {
                       </div>
                     )}
 
-                    {lead.tags && lead.tags.length > 0 && (
+                    {Array.isArray(lead.tags) && lead.tags.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {lead.tags.map((tag) => (
                           <span
