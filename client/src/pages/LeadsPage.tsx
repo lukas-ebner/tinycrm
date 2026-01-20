@@ -82,13 +82,17 @@ export default function LeadsPage() {
   });
 
   // Fetch saved filters
-  const { data: savedFiltersData } = useQuery({
+  const { data: savedFiltersData, isLoading: filtersLoading, error: filtersError } = useQuery({
     queryKey: ['savedFilters'],
     queryFn: async () => {
       const response = await api.get('/saved-filters');
+      console.log('Saved filters response:', response.data);
       return response.data.filters as SavedFilter[];
     },
   });
+
+  // Debug log
+  console.log('Saved filters:', savedFiltersData, 'Loading:', filtersLoading, 'Error:', filtersError);
 
   // Create saved filter mutation
   const createFilterMutation = useMutation({
@@ -282,12 +286,13 @@ export default function LeadsPage() {
       </div>
 
       {/* Saved Filters - visible for all users */}
-      {savedFilters.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Bookmark className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Gespeicherte Filter:</span>
-          </div>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Bookmark className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Gespeicherte Filter:</span>
+          {filtersLoading && <span className="text-xs text-gray-400">Laden...</span>}
+          {filtersError && <span className="text-xs text-red-500">Fehler beim Laden</span>}
+        </div>
           <div className="flex flex-wrap gap-2">
             {savedFilters.map((filter) => (
               <div
@@ -324,9 +329,11 @@ export default function LeadsPage() {
                 )}
               </div>
             ))}
+            {savedFilters.length === 0 && !filtersLoading && (
+              <span className="text-sm text-gray-400">Keine Filter vorhanden</span>
+            )}
           </div>
-        </div>
-      )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
