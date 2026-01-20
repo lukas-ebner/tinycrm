@@ -109,6 +109,44 @@ CREATE INDEX idx_reminders_due_at ON reminders(due_at) WHERE completed = false;
 CREATE INDEX idx_lead_tags_lead_id ON lead_tags(lead_id);
 CREATE INDEX idx_lead_tags_tag_id ON lead_tags(tag_id);
 
+-- Contacts table for lead contact persons
+CREATE TABLE contacts (
+  id SERIAL PRIMARY KEY,
+  lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  role VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(100),
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Saved Filters table for storing user-defined lead filters
+CREATE TABLE saved_filters (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  search TEXT,
+  stage_id INTEGER REFERENCES stages(id) ON DELETE SET NULL,
+  nace_code TEXT,
+  assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  tags JSONB DEFAULT '[]'::jsonb,
+  city TEXT,
+  zip TEXT,
+  min_score INTEGER,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Index for contacts
+CREATE INDEX idx_contacts_lead_id ON contacts(lead_id);
+
+-- Index for saved filters
+CREATE INDEX idx_saved_filters_user_id ON saved_filters(user_id);
+CREATE INDEX idx_saved_filters_tags ON saved_filters USING GIN (tags);
+
 -- Insert default stages
 INSERT INTO stages (name, color, position) VALUES
   ('Neu', '#94A3B8', 1),

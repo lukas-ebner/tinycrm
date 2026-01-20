@@ -24,7 +24,7 @@ export default function LeadsPage() {
   const { user } = useAuth();
 
   const { data: leadsData, isLoading } = useQuery({
-    queryKey: ['leads', search, stageFilter, assignedToFilter, naceCodeFilter, cityFilter, zipFilter, tagsFilter],
+    queryKey: ['leads', search, stageFilter, assignedToFilter, naceCodeFilter, cityFilter, zipFilter, tagsFilter, scoreFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
@@ -34,6 +34,7 @@ export default function LeadsPage() {
       if (cityFilter) params.append('city', cityFilter);
       if (zipFilter) params.append('zip', zipFilter);
       if (tagsFilter.length > 0) params.append('tags', tagsFilter.join(','));
+      if (scoreFilter) params.append('min_score', scoreFilter);
       const response = await api.get(`/leads?${params}`);
       return response.data;
     },
@@ -86,6 +87,7 @@ export default function LeadsPage() {
       tags?: string[];
       city?: string;
       zip?: string;
+      min_score?: number;
     }) => {
       const response = await api.post('/saved-filters', data);
       return response.data;
@@ -126,15 +128,7 @@ export default function LeadsPage() {
     },
   });
 
-  let leads: Lead[] = leadsData?.leads || [];
-
-  // Client-side score filter
-  if (scoreFilter) {
-    const scoreValue = parseInt(scoreFilter);
-    leads = leads.filter(lead =>
-      lead.enrichment_data?.suitability_score === scoreValue
-    );
-  }
+  const leads: Lead[] = leadsData?.leads || [];
   const stages = stagesData?.stages || [];
   const total = leadsData?.total || 0;
   const filtered = leadsData?.filtered || 0;
@@ -155,6 +149,7 @@ export default function LeadsPage() {
     setCityFilter(filter.city || '');
     setZipFilter(filter.zip || '');
     setTagsFilter(filter.tags || []);
+    setScoreFilter(filter.min_score?.toString() || '');
   };
 
   // Save current filter
@@ -169,6 +164,7 @@ export default function LeadsPage() {
         city: cityFilter || undefined,
         zip: zipFilter || undefined,
         tags: tagsFilter.length > 0 ? tagsFilter : undefined,
+        min_score: scoreFilter ? parseInt(scoreFilter) : undefined,
       });
     }
   };
@@ -204,6 +200,9 @@ export default function LeadsPage() {
     if (selectedFilterForBulkAssign.zip) params.append('zip', selectedFilterForBulkAssign.zip);
     if (selectedFilterForBulkAssign.tags && selectedFilterForBulkAssign.tags.length > 0) {
       params.append('tags', selectedFilterForBulkAssign.tags.join(','));
+    }
+    if (selectedFilterForBulkAssign.min_score) {
+      params.append('min_score', selectedFilterForBulkAssign.min_score.toString());
     }
 
     try {
@@ -465,6 +464,9 @@ export default function LeadsPage() {
                 {assignedToFilter && (
                   <li>• Assigned To: {usersData?.find(u => u.id === parseInt(assignedToFilter))?.name || 'Unassigned'}</li>
                 )}
+                {scoreFilter && (
+                  <li>• Min. Score: {'⭐'.repeat(parseInt(scoreFilter))} ({scoreFilter}/5)</li>
+                )}
                 {naceCodeFilter && <li>• NACE Code: {naceCodeFilter}</li>}
                 {cityFilter && <li>• City: {cityFilter}</li>}
                 {zipFilter && <li>• ZIP: {zipFilter}</li>}
@@ -472,7 +474,7 @@ export default function LeadsPage() {
                   <li>• Tags: {tagsFilter.join(', ')}</li>
                 )}
                 {!search && !stageFilter && !assignedToFilter && !naceCodeFilter &&
-                 !cityFilter && !zipFilter && tagsFilter.length === 0 && (
+                 !cityFilter && !zipFilter && !scoreFilter && tagsFilter.length === 0 && (
                   <li>• No filters active</li>
                 )}
               </ul>

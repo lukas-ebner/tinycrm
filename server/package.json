@@ -8,7 +8,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:migrate": "node --loader tsx src/db/migrate.ts"
+    "db:migrate": "node --loader tsx src/db/migrate.ts",
+    "db:add-missing-tables": "npx tsx src/migrations/run-missing-tables.ts"
   },
   "keywords": [],
   "author": "",

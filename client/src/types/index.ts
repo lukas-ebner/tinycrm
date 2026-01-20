@@ -122,6 +122,7 @@ export interface SavedFilter {
   tags?: string[];
   city?: string;
   zip?: string;
+  min_score?: number;
   created_at: string;
   updated_at: string;
 }
