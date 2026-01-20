@@ -50,13 +50,16 @@ export default function ImportPage() {
   });
 
   // Fetch global enrichment status
-  const { data: globalStatus } = useQuery({
+  const { data: globalStatus } = useQuery<EnrichmentStatus>({
     queryKey: ['enrichmentStatus'],
     queryFn: async () => {
       const response = await api.get('/enrichment/status');
       return response.data as EnrichmentStatus;
     },
-    refetchInterval: globalStatus?.isRunning ? 2000 : 10000, // Faster refresh when running
+    refetchInterval: (query) => {
+      // Faster refresh when running
+      return query.state.data?.isRunning ? 2000 : 10000;
+    },
   });
 
   const handleDragEnter = (e: React.DragEvent) => {

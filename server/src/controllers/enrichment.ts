@@ -355,7 +355,7 @@ function getEnrichmentProgress() {
     isRunning: enrichmentState.isRunning,
     batch: enrichmentState.currentBatch,
     processed: enrichmentState.processedInBatch,
-    total: enrichmentState.totalInBatch,
+    batchTotal: enrichmentState.totalInBatch,
     errors: enrichmentState.errorsInBatch,
     progress: enrichmentState.totalInBatch > 0 
       ? Math.round((enrichmentState.processedInBatch / enrichmentState.totalInBatch) * 100)
