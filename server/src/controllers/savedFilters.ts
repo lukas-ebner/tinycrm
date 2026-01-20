@@ -5,20 +5,44 @@ import pool from '../db/config.js';
 // Get all saved filters for the current user (own + assigned to them)
 export const getUserFilters = async (req: AuthRequest, res: Response) => {
   try {
-    // Show filters that:
-    // 1. User created themselves
-    // 2. Were assigned to this user by an admin (for_user_id)
-    // 3. Are marked as shared (is_shared = true)
-    const result = await pool.query(
-      `SELECT sf.*, u.name as created_by_name 
-       FROM saved_filters sf
-       LEFT JOIN users u ON sf.user_id = u.id
-       WHERE sf.user_id = $1 
-          OR sf.for_user_id = $1 
-          OR sf.is_shared = true
-       ORDER BY sf.name ASC`,
-      [req.user?.id]
-    );
+    const userId = req.user?.id;
+    console.log('Fetching filters for user:', userId);
+    
+    // Check if new columns exist
+    const columnsCheck = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name = 'saved_filters' AND column_name IN ('for_user_id', 'is_shared')
+    `);
+    const hasNewColumns = columnsCheck.rows.length === 2;
+    console.log('Has new columns (for_user_id, is_shared):', hasNewColumns);
+    
+    let result;
+    if (hasNewColumns) {
+      // Show filters that:
+      // 1. User created themselves
+      // 2. Were assigned to this user by an admin (for_user_id)
+      // 3. Are marked as shared (is_shared = true)
+      result = await pool.query(
+        `SELECT sf.*, u.name as created_by_name 
+         FROM saved_filters sf
+         LEFT JOIN users u ON sf.user_id = u.id
+         WHERE sf.user_id = $1 
+            OR sf.for_user_id = $1 
+            OR sf.is_shared = true
+         ORDER BY sf.name ASC`,
+        [userId]
+      );
+    } else {
+      // Fallback: show all filters (old behavior + all shared)
+      result = await pool.query(
+        `SELECT sf.*, u.name as created_by_name 
+         FROM saved_filters sf
+         LEFT JOIN users u ON sf.user_id = u.id
+         ORDER BY sf.name ASC`
+      );
+    }
+    
+    console.log('Found filters:', result.rows.length, 'for user:', userId);
     res.json({ filters: result.rows });
   } catch (error) {
     console.error('Get saved filters error:', error);
