@@ -170,8 +170,8 @@ function analyzeWebsiteDetailed(html, companyData) {
 
   const foundCompanyNames = new Set();
 
-  // Pattern für Firmennamen (flexibler)
-  const companyNamePattern = /\b([A-ZÄÖÜ][A-Za-zäöüß\-]+(?:\s+[A-ZÄÖÜ&][A-Za-zäöüß\-]*){0,4}\s+(?:GmbH|AG|SE|KG|e\.V\.|mbH|Inc\.|Ltd\.|Group|Gruppe)(?:\s+&\s+Co\.\s+KG)?)\b/g;
+  // Pattern für Firmennamen (flexibler) - SE muss großgeschrieben sein
+  const companyNamePattern = /\b([A-ZÄÖÜ][A-Za-zäöüß\-]+(?:\s+[A-ZÄÖÜ&][A-Za-zäöüß\-]*){0,4}\s+(?:GmbH|AG|SE(?![a-z])|KG|e\.V\.|mbH|Inc\.|Ltd\.|Group|Gruppe)(?:\s+&\s+Co\.\s+KG)?)\b/g;
 
   // Durchsuche Client-Sections
   for (const sectionPattern of clientSectionPatterns) {
@@ -183,11 +183,22 @@ function analyzeWebsiteDetailed(html, companyData) {
       for (const match of companyMatches) {
         const companyName = match[1].trim();
         // Filter out obvious false positives
+        const invalidPatterns = [
+          'Impressum', 'Datenschutz', 'Cookie', 'Newsletter',
+          'Geschäftskunden', 'Privatkunden', 'Firmenkunden',
+          'Neukunden', 'Bestandskunden', 'Unternehmen Se',
+          'Kunden Se', 'Partner Se', 'Service Se'
+        ];
+        const isInvalid = invalidPatterns.some(p => 
+          companyName.toLowerCase().includes(p.toLowerCase())
+        );
+        
         if (companyName &&
-            !companyName.includes('Impressum') &&
-            !companyName.includes('Datenschutz') &&
+            !isInvalid &&
             companyName.length > 5 &&
-            companyName.length < 60) {
+            companyName.length < 60 &&
+            // Ensure SE is actually uppercase at the end
+            !companyName.match(/\s+Se$/)) {
           foundCompanyNames.add(companyName);
         }
       }
@@ -201,9 +212,18 @@ function analyzeWebsiteDetailed(html, companyData) {
 
     for (const match of contextMatches) {
       const companyName = match[1].trim();
+      const invalidPatterns = [
+        'Impressum', 'Datenschutz', 'Cookie', 'Geschäftskunden',
+        'Privatkunden', 'Firmenkunden', 'Kunden Se', 'Service Se'
+      ];
+      const isInvalid = invalidPatterns.some(p => 
+        companyName.toLowerCase().includes(p.toLowerCase())
+      );
+      
       if (companyName &&
-          !companyName.includes('Impressum') &&
-          companyName.length > 5) {
+          !isInvalid &&
+          companyName.length > 5 &&
+          !companyName.match(/\s+Se$/)) {
         foundCompanyNames.add(companyName);
       }
     }
