@@ -111,7 +111,7 @@ export default function LeadDetailPage() {
   });
 
   // Fetch contacts - temporarily disabled due to API issue
-  const { data: contactsData } = useQuery({
+  const { data: contactsData } = useQuery<Contact[]>({
     queryKey: ['contacts', id],
     queryFn: async () => {
       const response = await api.get(`/contacts/lead/${id}`);
@@ -119,9 +119,6 @@ export default function LeadDetailPage() {
     },
     enabled: false, // Disabled until contacts API is fixed
     retry: false,
-    onError: (error) => {
-      console.error('Failed to load contacts:', error);
-    },
   });
 
   // Fetch all tags
