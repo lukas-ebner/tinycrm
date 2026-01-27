@@ -90,7 +90,8 @@ export default function KanbanPage() {
     queryKey: ['savedFilters'],
     queryFn: async () => {
       const response = await api.get('/saved-filters');
-      return response.data.filters as SavedFilter[];
+      const filters = response.data.filters;
+      return Array.isArray(filters) ? filters as SavedFilter[] : [];
     },
   });
 
@@ -105,9 +106,9 @@ export default function KanbanPage() {
     },
   });
 
-  const leads: Lead[] = leadsData?.leads || [];
-  const stages: Stage[] = stagesData?.stages || [];
-  const savedFilters = savedFiltersData || [];
+  const leads: Lead[] = Array.isArray(leadsData?.leads) ? leadsData.leads : [];
+  const stages: Stage[] = Array.isArray(stagesData?.stages) ? stagesData.stages : [];
+  const savedFilters: SavedFilter[] = Array.isArray(savedFiltersData) ? savedFiltersData : [];
 
   // Load a saved filter
   const handleLoadFilter = (filter: SavedFilter) => {
@@ -134,13 +135,15 @@ export default function KanbanPage() {
   };
 
   // Group leads by stage
-  const leadsByStage = stages.reduce((acc, stage) => {
-    acc[stage.id] = leads.filter((lead) => lead.stage_id === stage.id);
-    return acc;
-  }, {} as Record<number, Lead[]>);
+  const leadsByStage = Array.isArray(stages) && Array.isArray(leads)
+    ? stages.reduce((acc, stage) => {
+        acc[stage.id] = leads.filter((lead) => lead.stage_id === stage.id);
+        return acc;
+      }, {} as Record<number, Lead[]>)
+    : {};
 
   // Unassigned leads (no stage)
-  const unassignedLeads = leads.filter((lead) => !lead.stage_id);
+  const unassignedLeads = Array.isArray(leads) ? leads.filter((lead) => !lead.stage_id) : [];
 
   const handleDragStart = (e: React.DragEvent, leadId: number) => {
     e.dataTransfer.setData('leadId', leadId.toString());
@@ -163,9 +166,10 @@ export default function KanbanPage() {
     let stageLeadIds: number[];
     if (stageId === null || stageId === 0) {
       // Unassigned leads
-      stageLeadIds = unassignedLeads.map(l => l.id);
+      stageLeadIds = Array.isArray(unassignedLeads) ? unassignedLeads.map(l => l.id) : [];
     } else {
-      stageLeadIds = leadsByStage[stageId]?.map(l => l.id) || [];
+      const stageLeads = leadsByStage[stageId];
+      stageLeadIds = Array.isArray(stageLeads) ? stageLeads.map(l => l.id) : [];
     }
     setModalLeadIds(stageLeadIds.length > 0 ? stageLeadIds : [leadId]);
     setSelectedLeadId(leadId);
@@ -174,7 +178,7 @@ export default function KanbanPage() {
   // Handle stage header click - open first lead
   const handleStageHeaderClick = (stageId: number) => {
     const stageLeads = leadsByStage[stageId];
-    if (stageLeads && stageLeads.length > 0) {
+    if (Array.isArray(stageLeads) && stageLeads.length > 0) {
       const leadIds = stageLeads.map(l => l.id);
       setModalLeadIds(leadIds);
       setSelectedLeadId(stageLeads[0].id);
@@ -405,7 +409,10 @@ export default function KanbanPage() {
         <LeadDetailModal
           leadId={selectedLeadId}
           leadIds={modalLeadIds}
-          onClose={() => setSelectedLeadId(null)}
+          onClose={() => {
+            setSelectedLeadId(null);
+            setModalLeadIds([]);
+          }}
           onNavigate={(newLeadId) => setSelectedLeadId(newLeadId)}
         />
       )}

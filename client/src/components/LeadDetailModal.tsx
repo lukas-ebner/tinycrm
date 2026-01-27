@@ -462,9 +462,11 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
                     disabled={addTagMutation.isPending}
                   >
                     <option value="">+ Tag hinzufügen...</option>
-                    {allTagsData?.filter(tag => !Array.isArray(leadData.tags) || !leadData.tags.some(lt => lt.id === tag.id)).map((tag) => (
-                      <option key={tag.id} value={tag.id}>{tag.name}</option>
-                    ))}
+                    {Array.isArray(allTagsData) && allTagsData
+                      .filter(tag => !Array.isArray(leadData.tags) || !leadData.tags.some(lt => lt.id === tag.id))
+                      .map((tag) => (
+                        <option key={tag.id} value={tag.id}>{tag.name}</option>
+                      ))}
                   </select>
 
                   <div className="flex flex-wrap gap-1">
