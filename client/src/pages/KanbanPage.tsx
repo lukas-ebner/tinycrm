@@ -206,7 +206,7 @@ export default function KanbanPage() {
       </div>
 
       {/* Saved Filters */}
-      {savedFilters.length > 0 && (
+      {Array.isArray(savedFilters) && savedFilters.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Bookmark className="w-4 h-4 text-gray-500" />
@@ -259,7 +259,7 @@ export default function KanbanPage() {
       {/* Kanban Columns */}
       <div className="flex-1 overflow-x-auto">
         <div className="flex space-x-4 h-full pb-4">
-          {stages.map((stage) => (
+          {Array.isArray(stages) && stages.map((stage) => (
             <div
               key={stage.id}
               className="flex-shrink-0 w-80 bg-gray-100 rounded-lg p-4 flex flex-col"
@@ -291,7 +291,7 @@ export default function KanbanPage() {
 
               {/* Cards */}
               <div className="flex-1 overflow-y-auto space-y-3">
-                {leadsByStage[stage.id]?.map((lead) => (
+                {Array.isArray(leadsByStage[stage.id]) && leadsByStage[stage.id].map((lead) => (
                   <div
                     key={lead.id}
                     draggable
@@ -353,7 +353,7 @@ export default function KanbanPage() {
           ))}
 
           {/* Unassigned Column */}
-          {unassignedLeads.length > 0 && (
+          {Array.isArray(unassignedLeads) && unassignedLeads.length > 0 && (
             <div className="flex-shrink-0 w-80 bg-gray-100 rounded-lg p-4 flex flex-col">
               <div className="mb-4">
                 <div className="flex items-center justify-between">

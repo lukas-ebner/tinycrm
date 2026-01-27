@@ -191,7 +191,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     );
   }
 
-  const stages = stagesData || [];
+  const stages: Stage[] = Array.isArray(stagesData) ? stagesData : [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -310,7 +310,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
                 <div className="bg-gray-50 rounded-lg p-4">
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Stage</label>
                   <div className="flex flex-wrap gap-2">
-                    {stages.map((stage) => (
+                    {Array.isArray(stages) && stages.map((stage) => (
                       <button
                         key={stage.id}
                         onClick={() => updateStageMutation.mutate(stage.id)}
