@@ -126,7 +126,7 @@ export default function LeadDetailPage() {
     queryKey: ['stages'],
     queryFn: async () => {
       const response = await api.get('/stages');
-      return response.data.stages as Stage[];
+      return response.data;
     },
   });
 
@@ -401,8 +401,8 @@ export default function LeadDetailPage() {
     );
   }
 
-  const stages = stagesData || [];
-  const users = usersData || [];
+  const stages: Stage[] = stagesData?.stages || [];
+  const users: User[] = usersData || [];
 
   return (
     <div className="p-8">
