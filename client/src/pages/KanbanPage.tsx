@@ -300,9 +300,16 @@ export default function KanbanPage() {
                     onClick={() => handleLeadClick(lead.id, stage.id)}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-medium text-gray-900 hover:text-amber-600">
-                        {lead.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 hover:text-amber-600 truncate">
+                          {lead.name}
+                        </h3>
+                        {lead.is_advisory_board && (
+                          <span className="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-800 flex-shrink-0">
+                            AB
+                          </span>
+                        )}
+                      </div>
                       {lead.enrichment_data?.suitability_score && (
                         <span className="text-sm ml-2 flex-shrink-0">
                           {'⭐'.repeat(lead.enrichment_data.suitability_score)}
@@ -340,6 +347,22 @@ export default function KanbanPage() {
                         ))}
                       </div>
                     )}
+
+                    {lead.promo_code && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 flex items-center justify-between">
+                          <span className="font-mono">{lead.promo_code}</span>
+                          <span>
+                            {lead.promo_code_status === 'redeemed' ? '🟢' : '🟡'}
+                          </span>
+                        </p>
+                        {lead.promo_code_assigned_at && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(lead.promo_code_assigned_at).toLocaleDateString('de-DE')}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -372,9 +395,16 @@ export default function KanbanPage() {
                     onClick={() => handleLeadClick(lead.id, null)}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-medium text-gray-900 hover:text-amber-600">
-                        {lead.name}
-                      </h3>
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 hover:text-amber-600 truncate">
+                          {lead.name}
+                        </h3>
+                        {lead.is_advisory_board && (
+                          <span className="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-800 flex-shrink-0">
+                            AB
+                          </span>
+                        )}
+                      </div>
                       {lead.enrichment_data?.suitability_score && (
                         <span className="text-sm ml-2 flex-shrink-0">
                           {'⭐'.repeat(lead.enrichment_data.suitability_score)}
@@ -390,6 +420,22 @@ export default function KanbanPage() {
                       <p className="text-sm text-gray-600">
                         {lead.zip} {lead.city}
                       </p>
+                    )}
+
+                    {lead.promo_code && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 flex items-center justify-between">
+                          <span className="font-mono">{lead.promo_code}</span>
+                          <span>
+                            {lead.promo_code_status === 'redeemed' ? '🟢' : '🟡'}
+                          </span>
+                        </p>
+                        {lead.promo_code_assigned_at && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(lead.promo_code_assigned_at).toLocaleDateString('de-DE')}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllLeads, getLead, createLead, updateLead, deleteLead, bulkAssignLeads, bulkAssignFromFilter, addTagToLead, removeTagFromLead } from '../controllers/leads.js';
+import { getAllLeads, getLead, createLead, updateLead, deleteLead, bulkAssignLeads, bulkAssignFromFilter, addTagToLead, removeTagFromLead, toggleAdvisoryBoard } from '../controllers/leads.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -15,5 +15,6 @@ router.post('/bulk-assign', bulkAssignLeads);
 router.post('/bulk-assign-filter', bulkAssignFromFilter);
 router.post('/:id/tags', addTagToLead);
 router.delete('/:id/tags/:tag_id', removeTagFromLead);
+router.put('/:id/advisory-board', toggleAdvisoryBoard);
 
 export default router;

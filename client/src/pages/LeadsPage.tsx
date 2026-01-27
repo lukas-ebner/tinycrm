@@ -707,6 +707,15 @@ export default function LeadsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tags
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Aktionscode
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ausgegeben an
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -716,13 +725,20 @@ export default function LeadsPage() {
                     className="hover:bg-gray-50 cursor-pointer"
                   >
                     <td className="px-6 py-4">
-                      <Link
-                        to={`/leads/${lead.id}`}
-                        onClick={() => handleLeadClick(lead.id)}
-                        className="text-amber-600 hover:text-amber-700 font-medium"
-                      >
-                        {lead.name}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/leads/${lead.id}`}
+                          onClick={() => handleLeadClick(lead.id)}
+                          className="text-amber-600 hover:text-amber-700 font-medium"
+                        >
+                          {lead.name}
+                        </Link>
+                        {lead.is_advisory_board && (
+                          <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                            AB
+                          </span>
+                        )}
+                      </div>
                       {lead.legal_form && (
                         <p className="text-sm text-gray-500">{lead.legal_form}</p>
                       )}
@@ -769,6 +785,35 @@ export default function LeadsPage() {
                           </span>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-gray-900">
+                      {lead.promo_code || '-'}
+                    </td>
+                    <td className="px-6 py-4">
+                      {lead.promo_code_status ? (
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            lead.promo_code_status === 'available'
+                              ? 'bg-blue-100 text-blue-800'
+                              : lead.promo_code_status === 'assigned'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {lead.promo_code_status === 'available'
+                            ? 'Verfügbar'
+                            : lead.promo_code_status === 'assigned'
+                            ? 'Zugewiesen'
+                            : 'Eingelöst'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {lead.promo_code_assigned_at
+                        ? new Date(lead.promo_code_assigned_at).toLocaleDateString('de-DE')
+                        : '-'}
                     </td>
                   </tr>
                 ))}

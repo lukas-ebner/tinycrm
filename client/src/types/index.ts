@@ -75,6 +75,10 @@ export interface Lead {
   tags?: Tag[];
   notes?: Note[];
   reminders?: Reminder[];
+  promo_code?: string;
+  promo_code_status?: 'available' | 'assigned' | 'redeemed';
+  promo_code_assigned_at?: string;
+  is_advisory_board?: boolean;
   created_at: string;
   updated_at: string;
 }

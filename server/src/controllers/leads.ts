@@ -12,6 +12,9 @@ export const getAllLeads = async (req: AuthRequest, res: Response) => {
         s.name as stage_name,
         s.color as stage_color,
         u.name as assigned_to_name,
+        pc.code as promo_code,
+        pc.status as promo_code_status,
+        pc.assigned_at as promo_code_assigned_at,
         COALESCE(
           json_agg(
             DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
@@ -23,6 +26,7 @@ export const getAllLeads = async (req: AuthRequest, res: Response) => {
       LEFT JOIN users u ON l.assigned_to = u.id
       LEFT JOIN lead_tags lt ON l.id = lt.lead_id
       LEFT JOIN tags t ON lt.tag_id = t.id
+      LEFT JOIN promo_codes pc ON l.id = pc.assigned_to_lead_id
     `;
 
     const conditions: string[] = [];
@@ -113,7 +117,7 @@ export const getAllLeads = async (req: AuthRequest, res: Response) => {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' GROUP BY l.id, s.name, s.color, u.name';
+    query += ' GROUP BY l.id, s.name, s.color, u.name, pc.code, pc.status, pc.assigned_at';
 
     if (havingConditions.length > 0) {
       query += ' HAVING ' + havingConditions.join(' AND ');
@@ -157,6 +161,9 @@ export const getLead = async (req: AuthRequest, res: Response) => {
         s.name as stage_name,
         s.color as stage_color,
         u.name as assigned_to_name,
+        pc.code as promo_code,
+        pc.status as promo_code_status,
+        pc.assigned_at as promo_code_assigned_at,
         COALESCE(
           json_agg(
             DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
@@ -191,13 +198,14 @@ export const getLead = async (req: AuthRequest, res: Response) => {
       FROM leads l
       LEFT JOIN stages s ON l.stage_id = s.id
       LEFT JOIN users u ON l.assigned_to = u.id
+      LEFT JOIN promo_codes pc ON l.id = pc.assigned_to_lead_id
       LEFT JOIN lead_tags lt ON l.id = lt.lead_id
       LEFT JOIN tags t ON lt.tag_id = t.id
       LEFT JOIN notes n ON l.id = n.lead_id
       LEFT JOIN users un ON n.user_id = un.id
       LEFT JOIN reminders r ON l.id = r.lead_id
       WHERE l.id = $1
-      GROUP BY l.id, s.name, s.color, u.name
+      GROUP BY l.id, s.name, s.color, u.name, pc.code, pc.status, pc.assigned_at
       `,
       [id]
     );
@@ -693,5 +701,35 @@ export const removeTagFromLead = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Remove tag error:', error);
     res.status(500).json({ error: 'Failed to remove tag' });
+  }
+};
+
+// Toggle advisory board status
+export const toggleAdvisoryBoard = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { is_advisory_board } = req.body;
+
+    // Check if lead exists and user has access
+    const leadCheck = await pool.query('SELECT id, assigned_to FROM leads WHERE id = $1', [id]);
+
+    if (leadCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    if (req.user?.role === 'caller' && leadCheck.rows[0].assigned_to !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Update advisory board status
+    await pool.query(
+      'UPDATE leads SET is_advisory_board = $1, updated_at = NOW() WHERE id = $2',
+      [is_advisory_board, id]
+    );
+
+    res.json({ message: 'Advisory board status updated successfully', is_advisory_board });
+  } catch (error) {
+    console.error('Toggle advisory board error:', error);
+    res.status(500).json({ error: 'Failed to update advisory board status' });
   }
 };

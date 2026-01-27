@@ -48,6 +48,7 @@ export default function LeadDetailPage() {
     phone: '',
     notes: '',
   });
+  const [emailCopied, setEmailCopied] = useState(false);
 
   // Navigation context
   const [navigationIds, setNavigationIds] = useState<number[]>([]);
@@ -349,6 +350,23 @@ export default function LeadDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promoCode', id] });
+      queryClient.invalidateQueries({ queryKey: ['lead', id] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.error || 'Fehler beim Aufheben der Zuweisung');
+    },
+  });
+
+  // Advisory Board mutation
+  const toggleAdvisoryBoardMutation = useMutation({
+    mutationFn: async (isAdvisoryBoard: boolean) => {
+      const response = await api.put(`/leads/${id}/advisory-board`, { is_advisory_board: isAdvisoryBoard });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', id] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 
@@ -359,6 +377,75 @@ export default function LeadDetailPage() {
   const handleUnassignPromoCode = () => {
     if (promoCodeData && confirm('Code-Zuweisung aufheben?')) {
       unassignPromoCodeMutation.mutate(promoCodeData.id);
+    }
+  };
+
+  const handleToggleAdvisoryBoard = (checked: boolean) => {
+    toggleAdvisoryBoardMutation.mutate(checked);
+  };
+
+  const handleCopyEmail = async () => {
+    if (!promoCodeData || !leadData) return;
+
+    const emailHtml = `<p>vielen Dank für das Gespräch heute!</p>
+
+<p>Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.</p>
+
+<p><strong>So starten Sie:</strong><br>
+<ol>
+<li>Gehen Sie auf https://leadtime.app</li>
+<li>Klicken Sie auf "Kostenlos testen"</li>
+<li>Erstellen Sie Ihren Workspace</li>
+<li>Geben Sie bei dem Vorgang Ihren persönlichen Code ein</li>
+</ol></p>
+
+<p><strong>Ihr Aktionscode: ${promoCodeData.code}</strong></p>
+
+<p><strong>Ihr Vorteil:</strong><br>
+<ul>
+<li>30 Tage kostenlos testen – volles Team, alle Features</li>
+<li>50% Rabatt im gesamten ersten Jahr</li>
+</ul></p>
+
+<p>Brauchen Sie mehr Informationen? Wie Leadtime Ihrem Unternehmen nutzen kann, erfahren Sie in diesem gratis E-Book: <a href="https://leadt.me/quickinfo">https://leadt.me/quickinfo</a></p>
+
+<p>Bei Fragen melden Sie sich jederzeit.</p>
+
+<p>Viel Erfolg beim Ausprobieren!</p>`;
+
+    const emailPlainText = `vielen Dank für das Gespräch heute!
+
+Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.
+
+So starten Sie:
+1. Gehen Sie auf https://leadtime.app
+2. Klicken Sie auf "Kostenlos testen"
+3. Erstellen Sie Ihren Workspace
+4. Geben Sie bei dem Vorgang Ihren persönlichen Code ein
+
+Ihr Aktionscode: ${promoCodeData.code}
+
+Ihr Vorteil:
+- 30 Tage kostenlos testen – volles Team, alle Features
+- 50% Rabatt im gesamten ersten Jahr
+
+Brauchen Sie mehr Informationen? Wie Leadtime Ihrem Unternehmen nutzen kann, erfahren Sie in diesem gratis E-Book: https://leadt.me/quickinfo
+
+Bei Fragen melden Sie sich jederzeit.
+
+Viel Erfolg beim Ausprobieren!`;
+
+    try {
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([emailHtml], { type: 'text/html' }),
+        'text/plain': new Blob([emailPlainText], { type: 'text/plain' })
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy email:', error);
+      alert('Fehler beim Kopieren. Bitte versuchen Sie es erneut.');
     }
   };
 
@@ -533,7 +620,7 @@ export default function LeadDetailPage() {
                 <button
                   onClick={handleSave}
                   disabled={updateMutation.isPending}
-                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-orange-600 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
                   <span>{updateMutation.isPending ? 'Saving...' : 'Save'}</span>
@@ -542,7 +629,7 @@ export default function LeadDetailPage() {
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-orange-600"
+                className="flex items-center space-x-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
               >
                 <Edit2 className="w-4 h-4" />
                 <span>Edit</span>
@@ -728,7 +815,7 @@ export default function LeadDetailPage() {
                       href={leadData.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:text-orange-600"
+                      className="text-amber-600 hover:text-amber-700"
                     >
                       {leadData.website}
                     </a>
@@ -851,7 +938,7 @@ export default function LeadDetailPage() {
                                     },
                                   })
                                 }
-                                className="w-4 h-4 text-primary border-gray-300 rounded"
+                                className="w-4 h-4 text-amber-600 border-gray-300 rounded"
                               />
                             </div>
                           )}
@@ -1218,7 +1305,7 @@ export default function LeadDetailPage() {
               </h3>
               <button
                 onClick={() => setShowNoteForm(!showNoteForm)}
-                className="text-primary hover:text-orange-600"
+                className="text-amber-600 hover:text-amber-700"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -1246,7 +1333,7 @@ export default function LeadDetailPage() {
                   <button
                     onClick={handleAddNote}
                     disabled={!newNote.trim() || addNoteMutation.isPending}
-                    className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-orange-600 disabled:opacity-50"
+                    className="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
                   >
                     {addNoteMutation.isPending ? 'Adding...' : 'Add'}
                   </button>
@@ -1291,7 +1378,7 @@ export default function LeadDetailPage() {
                   });
                   setShowContactForm(!showContactForm);
                 }}
-                className="text-primary hover:text-orange-600"
+                className="text-amber-600 hover:text-amber-700"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -1381,7 +1468,7 @@ export default function LeadDetailPage() {
                       addContactMutation.isPending ||
                       updateContactMutation.isPending
                     }
-                    className="px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-orange-600 disabled:opacity-50"
+                    className="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
                   >
                     {addContactMutation.isPending || updateContactMutation.isPending
                       ? 'Speichern...'
@@ -1412,7 +1499,7 @@ export default function LeadDetailPage() {
                       <div className="flex space-x-1">
                         <button
                           onClick={() => handleEditContact(contact)}
-                          className="p-1 text-gray-400 hover:text-primary"
+                          className="p-1 text-gray-400 hover:text-amber-600"
                         >
                           <Edit2 className="w-3 h-3" />
                         </button>
@@ -1429,7 +1516,7 @@ export default function LeadDetailPage() {
                         <Mail className="w-3 h-3" />
                         <a
                           href={`mailto:${contact.email}`}
-                          className="hover:text-primary"
+                          className="hover:text-amber-600"
                         >
                           {contact.email}
                         </a>
@@ -1440,7 +1527,7 @@ export default function LeadDetailPage() {
                         <Phone className="w-3 h-3" />
                         <a
                           href={`tel:${contact.phone}`}
-                          className="hover:text-primary"
+                          className="hover:text-amber-600"
                         >
                           {contact.phone}
                         </a>
@@ -1466,7 +1553,7 @@ export default function LeadDetailPage() {
               </h3>
               <button
                 onClick={() => setShowReminderForm(!showReminderForm)}
-                className="text-primary hover:text-orange-600"
+                className="text-amber-600 hover:text-amber-700"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -1508,7 +1595,7 @@ export default function LeadDetailPage() {
                       !newReminder.reason ||
                       addReminderMutation.isPending
                     }
-                    className="px-3 py-1 bg-primary text-white rounded-md hover:bg-orange-600 disabled:opacity-50"
+                    className="px-3 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
                   >
                     {addReminderMutation.isPending ? 'Adding...' : 'Add'}
                   </button>
@@ -1566,7 +1653,7 @@ export default function LeadDetailPage() {
                     href={leadData.northdata_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:text-orange-600"
+                    className="text-amber-600 hover:text-amber-700"
                   >
                     View on North Data →
                   </a>
@@ -1612,6 +1699,42 @@ export default function LeadDetailPage() {
                       </span>
                     )}
                   </div>
+                </div>
+                <button
+                  onClick={handleCopyEmail}
+                  className="w-full mt-4 px-4 py-2 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  {emailCopied ? (
+                    <>
+                      ✓ Kopiert
+                    </>
+                  ) : (
+                    <>
+                      📋 Mail kopieren
+                    </>
+                  )}
+                </button>
+
+                {/* Advisory Board Checkbox */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={leadData?.is_advisory_board || false}
+                      onChange={(e) => handleToggleAdvisoryBoard(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Advisory Board</span>
+                  </label>
+
+                  {leadData?.is_advisory_board && (
+                    <button
+                      onClick={() => window.open('https://leadt.me/call', '_blank')}
+                      className="w-full mt-3 px-4 py-2 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      📅 Termin buchen
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

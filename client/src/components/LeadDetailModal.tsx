@@ -25,6 +25,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
   const [newNote, setNewNote] = useState('');
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [newReminder, setNewReminder] = useState({ due_at: '', reason: '' });
+  const [emailCopied, setEmailCopied] = useState(false);
 
   const { data: leadData, isLoading } = useQuery({
     queryKey: ['lead', leadId],
@@ -97,6 +98,16 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     },
   });
 
+  // Fetch promo code for this lead
+  const { data: promoCodeData } = useQuery({
+    queryKey: ['promoCode', leadId],
+    queryFn: async () => {
+      const response = await api.get(`/promo-codes/lead/${leadId}`);
+      return response.data.code;
+    },
+    enabled: !!leadId,
+  });
+
   // Update stage mutation
   const updateStageMutation = useMutation({
     mutationFn: async (stageId: number | undefined) => {
@@ -132,6 +143,51 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
       setNewReminder({ due_at: '', reason: '' });
       setShowReminderForm(false);
+    },
+  });
+
+  // Promo code mutations
+  const assignPromoCodeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/promo-codes/assign', { lead_id: leadId });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promoCode', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to assign promo code:', error);
+      alert(error.response?.data?.error || 'Fehler beim Zuweisen des Codes');
+    },
+  });
+
+  const unassignPromoCodeMutation = useMutation({
+    mutationFn: async (codeId: number) => {
+      const response = await api.post(`/promo-codes/${codeId}/unassign`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promoCode', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to unassign promo code:', error);
+      alert(error.response?.data?.error || 'Fehler beim Aufheben der Zuweisung');
+    },
+  });
+
+  // Advisory Board mutation
+  const toggleAdvisoryBoardMutation = useMutation({
+    mutationFn: async (isAdvisoryBoard: boolean) => {
+      const response = await api.put(`/leads/${leadId}/advisory-board`, { is_advisory_board: isAdvisoryBoard });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
 
@@ -177,6 +233,75 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
   const handleAddReminder = () => {
     if (newReminder.due_at && newReminder.reason) {
       addReminderMutation.mutate(newReminder);
+    }
+  };
+
+  const handleToggleAdvisoryBoard = (checked: boolean) => {
+    toggleAdvisoryBoardMutation.mutate(checked);
+  };
+
+  const handleCopyEmail = async () => {
+    if (!promoCodeData || !leadData) return;
+
+    const emailHtml = `<p>vielen Dank für das Gespräch heute!</p>
+
+<p>Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.</p>
+
+<p><strong>So starten Sie:</strong><br>
+<ol>
+<li>Gehen Sie auf https://leadtime.app</li>
+<li>Klicken Sie auf "Kostenlos testen"</li>
+<li>Erstellen Sie Ihren Workspace</li>
+<li>Geben Sie bei dem Vorgang Ihren persönlichen Code ein</li>
+</ol></p>
+
+<p><strong>Ihr Aktionscode: ${promoCodeData.code}</strong></p>
+
+<p><strong>Ihr Vorteil:</strong><br>
+<ul>
+<li>30 Tage kostenlos testen – volles Team, alle Features</li>
+<li>50% Rabatt im gesamten ersten Jahr</li>
+</ul></p>
+
+<p>Brauchen Sie mehr Informationen? Wie Leadtime Ihrem Unternehmen nutzen kann, erfahren Sie in diesem gratis E-Book: <a href="https://leadt.me/quickinfo">https://leadt.me/quickinfo</a></p>
+
+<p>Bei Fragen melden Sie sich jederzeit.</p>
+
+<p>Viel Erfolg beim Ausprobieren!</p>`;
+
+    const emailPlainText = `vielen Dank für das Gespräch heute!
+
+Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.
+
+So starten Sie:
+1. Gehen Sie auf https://leadtime.app
+2. Klicken Sie auf "Kostenlos testen"
+3. Erstellen Sie Ihren Workspace
+4. Geben Sie bei dem Vorgang Ihren persönlichen Code ein
+
+Ihr Aktionscode: ${promoCodeData.code}
+
+Ihr Vorteil:
+- 30 Tage kostenlos testen – volles Team, alle Features
+- 50% Rabatt im gesamten ersten Jahr
+
+Brauchen Sie mehr Informationen? Wie Leadtime Ihrem Unternehmen nutzen kann, erfahren Sie in diesem gratis E-Book: https://leadt.me/quickinfo
+
+Bei Fragen melden Sie sich jederzeit.
+
+Viel Erfolg beim Ausprobieren!`;
+
+    try {
+      const clipboardItem = new ClipboardItem({
+        'text/html': new Blob([emailHtml], { type: 'text/html' }),
+        'text/plain': new Blob([emailPlainText], { type: 'text/plain' })
+      });
+      await navigator.clipboard.write([clipboardItem]);
+      setEmailCopied(true);
+      setTimeout(() => setEmailCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy email:', error);
+      alert('Fehler beim Kopieren. Bitte versuchen Sie es erneut.');
     }
   };
 
@@ -632,6 +757,84 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
                     <p className="text-sm text-gray-700">{leadData.assigned_to_name}</p>
                   </div>
                 )}
+
+                {/* Promo Code */}
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    🎟️ Aktionscode
+                  </h3>
+                  {promoCodeData ? (
+                    <>
+                      <p className="text-lg font-mono font-bold text-gray-900 mb-2">
+                        {promoCodeData.code}
+                      </p>
+                      <div className="space-y-1 mb-3">
+                        <p className="text-sm text-gray-600">
+                          ausgegeben: {promoCodeData.assigned_at ? new Date(promoCodeData.assigned_at).toLocaleDateString('de-DE') : '-'}
+                        </p>
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          Status: <span className="font-medium">
+                            {promoCodeData.status === 'redeemed' ? 'eingelöst 🟢' : 'warten 🟡'}
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleCopyEmail}
+                        className="w-full mb-2 px-3 py-1.5 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded transition-colors flex items-center justify-center gap-2"
+                      >
+                        {emailCopied ? '✓ Kopiert' : '📋 Mail kopieren'}
+                      </button>
+                      {promoCodeData.status === 'assigned' && (
+                        <button
+                          onClick={() => {
+                            if (confirm('Code-Zuweisung wirklich aufheben?')) {
+                              unassignPromoCodeMutation.mutate(promoCodeData.id);
+                            }
+                          }}
+                          disabled={unassignPromoCodeMutation.isPending}
+                          className="w-full px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                        >
+                          {unassignPromoCodeMutation.isPending ? 'Wird aufgehoben...' : 'Zuweisung aufheben'}
+                        </button>
+                      )}
+
+                      {/* Advisory Board Checkbox */}
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={leadData?.is_advisory_board || false}
+                            onChange={(e) => handleToggleAdvisoryBoard(e.target.checked)}
+                            className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                          />
+                          <span className="text-sm font-medium text-gray-700">Advisory Board</span>
+                        </label>
+
+                        {leadData?.is_advisory_board && (
+                          <button
+                            onClick={() => window.open('https://leadt.me/call', '_blank')}
+                            className="w-full mt-3 px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                          >
+                            📅 Termin buchen
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Kein Code zugewiesen
+                      </p>
+                      <button
+                        onClick={() => assignPromoCodeMutation.mutate()}
+                        disabled={assignPromoCodeMutation.isPending}
+                        className="w-full px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50"
+                      >
+                        {assignPromoCodeMutation.isPending ? 'Wird zugewiesen...' : 'Code beantragen'}
+                      </button>
+                    </>
+                  )}
+                </div>
 
                 {/* NorthData Link */}
                 {leadData.northdata_url && (
