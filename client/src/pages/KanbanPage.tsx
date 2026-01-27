@@ -159,9 +159,15 @@ export default function KanbanPage() {
   };
 
   // Handle lead click - open modal
-  const handleLeadClick = (leadId: number, stageId: number) => {
-    const stageLeadIds = leadsByStage[stageId]?.map(l => l.id) || [];
-    setModalLeadIds(stageLeadIds);
+  const handleLeadClick = (leadId: number, stageId: number | null) => {
+    let stageLeadIds: number[];
+    if (stageId === null || stageId === 0) {
+      // Unassigned leads
+      stageLeadIds = unassignedLeads.map(l => l.id);
+    } else {
+      stageLeadIds = leadsByStage[stageId]?.map(l => l.id) || [];
+    }
+    setModalLeadIds(stageLeadIds.length > 0 ? stageLeadIds : [leadId]);
     setSelectedLeadId(leadId);
   };
 
@@ -359,7 +365,7 @@ export default function KanbanPage() {
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
                     className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleLeadClick(lead.id, 0)}
+                    onClick={() => handleLeadClick(lead.id, null)}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-medium text-gray-900 hover:text-amber-600">

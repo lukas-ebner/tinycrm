@@ -31,7 +31,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     queryFn: async () => {
       const response = await api.get(`/leads/${leadId}`);
       const lead = response.data.lead;
-      
+
       // Parse enrichment_data if it's a string (PostgreSQL JSONB edge case)
       if (lead.enrichment_data && typeof lead.enrichment_data === 'string') {
         try {
@@ -41,8 +41,8 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
           lead.enrichment_data = null;
         }
       }
-      
-      // Ensure arrays are actually arrays
+
+      // Ensure arrays are actually arrays (handle JSON string edge cases)
       if (lead.tags && typeof lead.tags === 'string') {
         try {
           lead.tags = JSON.parse(lead.tags);
@@ -50,6 +50,10 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
           lead.tags = [];
         }
       }
+      if (!Array.isArray(lead.tags)) {
+        lead.tags = [];
+      }
+
       if (lead.notes && typeof lead.notes === 'string') {
         try {
           lead.notes = JSON.parse(lead.notes);
@@ -57,6 +61,10 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
           lead.notes = [];
         }
       }
+      if (!Array.isArray(lead.notes)) {
+        lead.notes = [];
+      }
+
       if (lead.reminders && typeof lead.reminders === 'string') {
         try {
           lead.reminders = JSON.parse(lead.reminders);
@@ -64,7 +72,10 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
           lead.reminders = [];
         }
       }
-      
+      if (!Array.isArray(lead.reminders)) {
+        lead.reminders = [];
+      }
+
       return lead as Lead;
     },
   });
@@ -82,7 +93,8 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     queryKey: ['tags'],
     queryFn: async () => {
       const response = await api.get('/tags');
-      return response.data.tags as Tag[];
+      const tags = response.data.tags;
+      return Array.isArray(tags) ? tags as Tag[] : [];
     },
   });
 
