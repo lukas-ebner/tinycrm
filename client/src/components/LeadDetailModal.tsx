@@ -84,8 +84,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     queryKey: ['stages'],
     queryFn: async () => {
       const response = await api.get('/stages');
-      const stages = response.data.stages;
-      return Array.isArray(stages) ? stages as Stage[] : [];
+      return response.data;
     },
   });
 
@@ -191,7 +190,7 @@ export default function LeadDetailModal({ leadId, leadIds, onClose, onNavigate }
     );
   }
 
-  const stages: Stage[] = Array.isArray(stagesData) ? stagesData : [];
+  const stages: Stage[] = Array.isArray(stagesData?.stages) ? stagesData.stages : [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
