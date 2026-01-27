@@ -71,7 +71,53 @@ export default function LeadDetailPage() {
     queryKey: ['lead', id],
     queryFn: async () => {
       const response = await api.get(`/leads/${id}`);
-      return response.data.lead as Lead;
+      const lead = response.data.lead;
+
+      // Parse enrichment_data if it's a string (PostgreSQL JSONB edge case)
+      if (lead.enrichment_data && typeof lead.enrichment_data === 'string') {
+        try {
+          lead.enrichment_data = JSON.parse(lead.enrichment_data);
+        } catch (e) {
+          console.error('Failed to parse enrichment_data:', e);
+          lead.enrichment_data = null;
+        }
+      }
+
+      // Ensure arrays are actually arrays (handle JSON string edge cases)
+      if (lead.tags && typeof lead.tags === 'string') {
+        try {
+          lead.tags = JSON.parse(lead.tags);
+        } catch (e) {
+          lead.tags = [];
+        }
+      }
+      if (!Array.isArray(lead.tags)) {
+        lead.tags = [];
+      }
+
+      if (lead.notes && typeof lead.notes === 'string') {
+        try {
+          lead.notes = JSON.parse(lead.notes);
+        } catch (e) {
+          lead.notes = [];
+        }
+      }
+      if (!Array.isArray(lead.notes)) {
+        lead.notes = [];
+      }
+
+      if (lead.reminders && typeof lead.reminders === 'string') {
+        try {
+          lead.reminders = JSON.parse(lead.reminders);
+        } catch (e) {
+          lead.reminders = [];
+        }
+      }
+      if (!Array.isArray(lead.reminders)) {
+        lead.reminders = [];
+      }
+
+      return lead as Lead;
     },
   });
 

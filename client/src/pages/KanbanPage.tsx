@@ -45,6 +45,33 @@ export default function KanbanPage() {
       if (naceCodeFilter) params.append('nace_code', naceCodeFilter);
       if (zipFilter) params.append('zip', zipFilter);
       const response = await api.get(`/leads?${params}`);
+
+      // Parse JSON strings for each lead (PostgreSQL JSONB edge case)
+      if (response.data.leads && Array.isArray(response.data.leads)) {
+        response.data.leads = response.data.leads.map((lead: Lead) => {
+          // Parse enrichment_data if it's a string
+          if (lead.enrichment_data && typeof lead.enrichment_data === 'string') {
+            try {
+              lead.enrichment_data = JSON.parse(lead.enrichment_data);
+            } catch (e) {
+              lead.enrichment_data = undefined;
+            }
+          }
+          // Parse tags if it's a string
+          if (lead.tags && typeof lead.tags === 'string') {
+            try {
+              lead.tags = JSON.parse(lead.tags);
+            } catch (e) {
+              lead.tags = [];
+            }
+          }
+          if (!Array.isArray(lead.tags)) {
+            lead.tags = [];
+          }
+          return lead;
+        });
+      }
+
       return response.data;
     },
   });
