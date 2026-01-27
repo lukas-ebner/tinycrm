@@ -13,6 +13,7 @@ import csvRoutes from './routes/csv.js';
 import contactRoutes from './routes/contacts.js';
 import savedFiltersRoutes from './routes/savedFilters.js';
 import enrichmentRoutes from './routes/enrichment.js';
+import promoCodeRoutes from './routes/promoCodes.js';
 import { initializeReminderStages } from './controllers/stages.js';
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use('/api/csv', csvRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/saved-filters', savedFiltersRoutes);
 app.use('/api/enrichment', enrichmentRoutes);
+app.use('/api/promo-codes', promoCodeRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

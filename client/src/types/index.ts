@@ -127,3 +127,33 @@ export interface SavedFilter {
   created_at: string;
   updated_at: string;
 }
+
+export interface PromoCodeList {
+  id: number;
+  name: string;
+  imported_at: string;
+  total_codes: number;
+  available_codes?: number;
+  assigned_codes?: number;
+  redeemed_codes?: number;
+  created_at: string;
+}
+
+export interface PromoCode {
+  id: number;
+  list_id: number;
+  code: string;
+  promotion_code_id: string;
+  active: boolean;
+  max_redemptions: number;
+  times_redeemed: number;
+  expires_at: number | null;
+  created: number | null;
+  status: 'available' | 'assigned' | 'redeemed';
+  assigned_to_lead_id: number | null;
+  assigned_at: string | null;
+  created_at: string;
+  list_name?: string;
+  lead_name?: string;
+  lead_id?: number;
+}

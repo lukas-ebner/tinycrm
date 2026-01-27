@@ -9,6 +9,7 @@ import LeadDetailPage from './pages/LeadDetailPage';
 import UsersPage from './pages/UsersPage';
 import StagesPage from './pages/StagesPage';
 import CustomFieldsPage from './pages/CustomFieldsPage';
+import PromoCodesPage from './pages/PromoCodesPage';
 import ImportPage from './pages/ImportPage';
 
 const queryClient = new QueryClient({
@@ -90,6 +91,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <CustomFieldsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="promo-codes"
+          element={
+            <AdminRoute>
+              <PromoCodesPage />
             </AdminRoute>
           }
         />

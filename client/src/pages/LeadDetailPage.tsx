@@ -20,9 +20,11 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Ticket,
+  RotateCcw,
 } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, Stage, User, Note, Reminder, Tag, Contact, CustomField } from '@/types/index';
+import type { Lead, Stage, User, Note, Reminder, Tag, Contact, CustomField, PromoCode } from '@/types/index';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LeadDetailPage() {
@@ -176,6 +178,15 @@ export default function LeadDetailPage() {
     },
   });
 
+  // Fetch promo code for this lead
+  const { data: promoCodeData } = useQuery({
+    queryKey: ['promoCode', id],
+    queryFn: async () => {
+      const response = await api.get(`/promo-codes/lead/${id}`);
+      return response.data.code;
+    },
+  });
+
   useEffect(() => {
     if (leadData) {
       setEditData(leadData);
@@ -316,6 +327,40 @@ export default function LeadDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
     },
   });
+
+  // Promo code mutations
+  const assignPromoCodeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post('/promo-codes/assign', { lead_id: id });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promoCode', id] });
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.error || 'Fehler beim Zuweisen des Codes');
+    },
+  });
+
+  const unassignPromoCodeMutation = useMutation({
+    mutationFn: async (codeId: number) => {
+      const response = await api.post(`/promo-codes/${codeId}/unassign`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promoCode', id] });
+    },
+  });
+
+  const handleAssignPromoCode = () => {
+    assignPromoCodeMutation.mutate();
+  };
+
+  const handleUnassignPromoCode = () => {
+    if (promoCodeData && confirm('Code-Zuweisung aufheben?')) {
+      unassignPromoCodeMutation.mutate(promoCodeData.id);
+    }
+  };
 
   const handleSave = () => {
     updateMutation.mutate(editData);
@@ -1528,6 +1573,58 @@ export default function LeadDetailPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Promo Code Section */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Ticket className="w-5 h-5" />
+              Aktionscode
+            </h3>
+            {promoCodeData ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-mono text-lg font-semibold text-gray-900">
+                    {promoCodeData.code}
+                  </div>
+                  <button
+                    onClick={handleUnassignPromoCode}
+                    disabled={unassignPromoCodeMutation.isPending}
+                    className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                    title="Zuweisung aufheben"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-sm text-gray-600">
+                  <div>
+                    ausgegeben: {promoCodeData.assigned_at ? new Date(promoCodeData.assigned_at).toLocaleDateString('de-DE') : '-'}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span>Status:</span>
+                    {promoCodeData.status === 'redeemed' ? (
+                      <span className="flex items-center gap-1 text-green-600 font-medium">
+                        eingelöst 🟢
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-yellow-600 font-medium">
+                        warten 🟡
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <button
+                  onClick={handleAssignPromoCode}
+                  disabled={assignPromoCodeMutation.isPending}
+                  className="w-full px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors disabled:opacity-50"
+                >
+                  {assignPromoCodeMutation.isPending ? 'Lade...' : 'Aktions-Code anfordern'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

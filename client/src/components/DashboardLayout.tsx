@@ -8,6 +8,7 @@ import {
   LogOut,
   List,
   Columns3,
+  Ticket,
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -25,6 +26,7 @@ export default function DashboardLayout() {
     { path: '/users', label: 'Users', icon: Users },
     { path: '/stages', label: 'Stages', icon: LayoutGrid },
     { path: '/custom-fields', label: 'Custom Fields', icon: Settings },
+    { path: '/promo-codes', label: 'Promo Codes', icon: Ticket },
     { path: '/import', label: 'CSV Import', icon: Upload },
   ];
 
