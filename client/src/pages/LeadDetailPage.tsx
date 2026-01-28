@@ -364,8 +364,12 @@ export default function LeadDetailPage() {
       const response = await api.put(`/leads/${id}/advisory-board`, { is_advisory_board: isAdvisoryBoard });
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lead', id] });
+    onSuccess: (data, isAdvisoryBoard) => {
+      // Immediately update the cached lead data
+      queryClient.setQueryData(['lead', id], (oldData: Lead | undefined) => {
+        if (!oldData) return oldData;
+        return { ...oldData, is_advisory_board: isAdvisoryBoard };
+      });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     },
   });
@@ -387,7 +391,44 @@ export default function LeadDetailPage() {
   const handleCopyEmail = async () => {
     if (!promoCodeData || !leadData) return;
 
-    const emailHtml = `<p>vielen Dank für das Gespräch heute!</p>
+    let emailHtml, emailPlainText;
+
+    if (leadData.is_advisory_board) {
+      // Advisory Board Email
+      emailHtml = `<p>Hallo ${leadData.name},</p>
+
+<p>vielen Dank für Ihr Interesse am Leadtime Advisory Board!</p>
+
+<p>Hier finden Sie alle Details zum Programm und den Vorteilen, die sich für Sie ergeben:<br>
+→ <a href="https://leadt.me/advisory">https://leadt.me/advisory</a></p>
+
+<p>Sie erhalten in einer separaten Mail eine Termineinladung zum persönlichen Onboarding mit unserem Gründer Lukas Ebner.</p>
+
+<p>Möchten Sie vorab mehr erfahren? In diesem Überblick zeigen wir, wie Leadtime typische Herausforderungen im digitalen Projektgeschäft löst:<br>
+→ <a href="https://leadt.me/quickinfo">https://leadt.me/quickinfo</a></p>
+
+<p>Bei Fragen melden Sie sich jederzeit.</p>
+
+<p>Wir freuen uns auf die Zusammenarbeit!</p>`;
+
+      emailPlainText = `Hallo ${leadData.name},
+
+vielen Dank für Ihr Interesse am Leadtime Advisory Board!
+
+Hier finden Sie alle Details zum Programm und den Vorteilen, die sich für Sie ergeben:
+→ https://leadt.me/advisory
+
+Sie erhalten in einer separaten Mail eine Termineinladung zum persönlichen Onboarding mit unserem Gründer Lukas Ebner.
+
+Möchten Sie vorab mehr erfahren? In diesem Überblick zeigen wir, wie Leadtime typische Herausforderungen im digitalen Projektgeschäft löst:
+→ https://leadt.me/quickinfo
+
+Bei Fragen melden Sie sich jederzeit.
+
+Wir freuen uns auf die Zusammenarbeit!`;
+    } else {
+      // Standard Promo Code Email
+      emailHtml = `<p>vielen Dank für das Gespräch heute!</p>
 
 <p>Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.</p>
 
@@ -413,7 +454,7 @@ export default function LeadDetailPage() {
 
 <p>Viel Erfolg beim Ausprobieren!</p>`;
 
-    const emailPlainText = `vielen Dank für das Gespräch heute!
+      emailPlainText = `vielen Dank für das Gespräch heute!
 
 Wie besprochen hier Ihr persönlicher Zugang zu Leadtime – der All-in-One-Plattform für IT-Dienstleister und Agenturen.
 
@@ -434,6 +475,7 @@ Brauchen Sie mehr Informationen? Wie Leadtime Ihrem Unternehmen nutzen kann, erf
 Bei Fragen melden Sie sich jederzeit.
 
 Viel Erfolg beim Ausprobieren!`;
+    }
 
     try {
       const clipboardItem = new ClipboardItem({
