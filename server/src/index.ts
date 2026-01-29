@@ -14,6 +14,7 @@ import contactRoutes from './routes/contacts.js';
 import savedFiltersRoutes from './routes/savedFilters.js';
 import enrichmentRoutes from './routes/enrichment.js';
 import promoCodeRoutes from './routes/promoCodes.js';
+import workspaceStatusRoutes from './routes/workspaceStatus.js';
 import { initializeReminderStages } from './controllers/stages.js';
 
 dotenv.config();
@@ -23,8 +24,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, 'http://localhost:5176', 'http://localhost:5174', 'http://localhost:5173']
-  : ['http://localhost:5176', 'http://localhost:5174', 'http://localhost:5173'];
+  ? [process.env.FRONTEND_URL, 'http://localhost:5176', 'http://localhost:5175', 'http://localhost:5174', 'http://localhost:5173']
+  : ['http://localhost:5176', 'http://localhost:5175', 'http://localhost:5174', 'http://localhost:5173'];
 
 app.use(cors({
   origin: allowedOrigins,
@@ -52,6 +53,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/saved-filters', savedFiltersRoutes);
 app.use('/api/enrichment', enrichmentRoutes);
 app.use('/api/promo-codes', promoCodeRoutes);
+app.use('/api/workspace-status', workspaceStatusRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

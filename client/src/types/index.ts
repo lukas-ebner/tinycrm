@@ -56,6 +56,8 @@ export interface Lead {
   city?: string;
   street?: string;
   phone?: string;
+  phone_verified?: boolean;
+  phone_verified_at?: string;
   email?: string;
   website?: string;
   nace_code?: string;
@@ -160,4 +162,17 @@ export interface PromoCode {
   list_name?: string;
   lead_name?: string;
   lead_id?: number;
+}
+
+export interface WorkspaceStatus {
+  found: boolean;
+  workspace: {
+    id: string;
+    name: string;
+    createdAt: string;
+    rootUserEmail: string;
+    rootUserName: string | null;
+    rootUserHasLoggedIn: boolean;
+    lastLoginAt: string | null;
+  } | null;
 }

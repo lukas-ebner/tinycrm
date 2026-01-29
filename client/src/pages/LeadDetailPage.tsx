@@ -24,7 +24,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, Stage, User, Note, Reminder, Tag, Contact, CustomField, PromoCode } from '@/types/index';
+import type { Lead, Stage, User, Note, Reminder, Tag, Contact, CustomField, PromoCode, WorkspaceStatus } from '@/types/index';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LeadDetailPage() {
@@ -186,6 +186,20 @@ export default function LeadDetailPage() {
       const response = await api.get(`/promo-codes/lead/${id}`);
       return response.data.code;
     },
+  });
+
+  // Fetch workspace status when promo code exists
+  const { data: workspaceStatus, isLoading: workspaceStatusLoading } = useQuery<WorkspaceStatus>({
+    queryKey: ['workspaceStatus', promoCodeData?.code],
+    queryFn: async () => {
+      const response = await api.get('/workspace-status', {
+        params: { code: promoCodeData!.code }
+      });
+      return response.data;
+    },
+    enabled: !!promoCodeData?.code,
+    staleTime: 60000,
+    retry: 1,
   });
 
   useEffect(() => {
@@ -1731,17 +1745,89 @@ Viel Erfolg beim Ausprobieren!`;
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span>Status:</span>
-                    {promoCodeData.status === 'redeemed' ? (
+                    {workspaceStatusLoading ? (
+                      <span className="flex items-center gap-1 text-gray-500 font-medium">
+                        lädt...
+                      </span>
+                    ) : workspaceStatus?.found && workspaceStatus.workspace.rootUserHasLoggedIn ? (
                       <span className="flex items-center gap-1 text-green-600 font-medium">
-                        eingelöst 🟢
+                        Workspace Aktiv 🟢
+                      </span>
+                    ) : workspaceStatus?.found ? (
+                      <span className="flex items-center gap-1 text-yellow-600 font-medium">
+                        Workspace erstellt 🟡
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-yellow-600 font-medium">
-                        warten 🟡
+                      <span className="flex items-center gap-1 text-red-600 font-medium">
+                        Warten 🔴
                       </span>
                     )}
                   </div>
                 </div>
+
+                {/* Workspace Status Section */}
+                {workspaceStatusLoading ? (
+                  <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+                    <p className="text-xs text-gray-500">Lade Workspace-Status...</p>
+                  </div>
+                ) : workspaceStatus?.found ? (
+                  <div className="mt-4 p-3 bg-green-50 rounded border border-green-200">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-green-600 font-semibold">✅ Workspace erstellt</span>
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        <a
+                          href={`https://leadtime.app/system/admin/workspaces/${workspaceStatus.workspace.id}/overview`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {workspaceStatus.workspace.name}
+                        </a>
+                        <span className="text-gray-500 ml-1">({workspaceStatus.workspace.id})</span>
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        erstellt: {new Date(workspaceStatus.workspace.createdAt).toLocaleDateString('de-DE')}
+                      </div>
+
+                      <div className="pt-2 border-t border-green-200">
+                        <div className="flex items-center gap-2 text-sm mb-1">
+                          {workspaceStatus.workspace.rootUserHasLoggedIn ? (
+                            <span className="text-green-600 font-semibold">✅ Root-User eingeloggt</span>
+                          ) : (
+                            <span className="text-amber-600 font-semibold">⏳ Noch nicht eingeloggt</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-700">
+                          E-Mail: {workspaceStatus.workspace.rootUserEmail}
+                        </div>
+                        {workspaceStatus.workspace.rootUserName && (
+                          <div className="text-xs text-gray-700">
+                            Name: {workspaceStatus.workspace.rootUserName}
+                          </div>
+                        )}
+                        {workspaceStatus.workspace.lastLoginAt && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            Letzter Login: {new Date(workspaceStatus.workspace.lastLoginAt).toLocaleDateString('de-DE', {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : workspaceStatus !== undefined ? (
+                  <div className="mt-4 p-3 bg-amber-50 rounded border border-amber-200">
+                    <p className="text-sm text-amber-700 font-medium">❌ Noch kein Workspace</p>
+                    <p className="text-xs text-amber-600 mt-1">Kunde hat Code noch nicht verwendet</p>
+                  </div>
+                ) : null}
+
                 <button
                   onClick={handleCopyEmail}
                   className="w-full mt-4 px-4 py-2 text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition-colors flex items-center justify-center gap-2"

@@ -3,8 +3,49 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Save, Bookmark, Trash2, Users } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, SavedFilter, User, Tag } from '@/types/index';
+import type { Lead, SavedFilter, User, Tag, WorkspaceStatus } from '@/types/index';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Helper component to show workspace status badge
+function WorkspaceStatusBadge({ promoCode }: { promoCode: string }) {
+  const { data: workspaceStatus, isLoading } = useQuery<WorkspaceStatus>({
+    queryKey: ['workspaceStatus', promoCode],
+    queryFn: async () => {
+      const response = await api.get('/workspace-status', {
+        params: { code: promoCode }
+      });
+      return response.data;
+    },
+    staleTime: 60000, // Cache for 1 minute
+    retry: 1,
+  });
+
+  if (isLoading) {
+    return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">...</span>;
+  }
+
+  if (workspaceStatus?.found && workspaceStatus.workspace.rootUserHasLoggedIn) {
+    return (
+      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+        Workspace Aktiv 🟢
+      </span>
+    );
+  }
+
+  if (workspaceStatus?.found) {
+    return (
+      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+        Workspace erstellt 🟡
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+      Warten 🔴
+    </span>
+  );
+}
 
 export default function LeadsPage() {
   const [search, setSearch] = useState('');
@@ -790,22 +831,8 @@ export default function LeadsPage() {
                       {lead.promo_code || '-'}
                     </td>
                     <td className="px-6 py-4">
-                      {lead.promo_code_status ? (
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            lead.promo_code_status === 'available'
-                              ? 'bg-blue-100 text-blue-800'
-                              : lead.promo_code_status === 'assigned'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {lead.promo_code_status === 'available'
-                            ? 'Verfügbar'
-                            : lead.promo_code_status === 'assigned'
-                            ? 'Zugewiesen'
-                            : 'Eingelöst'}
-                        </span>
+                      {lead.promo_code ? (
+                        <WorkspaceStatusBadge promoCode={lead.promo_code} />
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
                       )}

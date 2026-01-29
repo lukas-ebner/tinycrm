@@ -2,8 +2,37 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Bookmark, X } from 'lucide-react';
 import api from '@/lib/api';
-import type { Lead, Stage, SavedFilter } from '@/types/index';
+import type { Lead, Stage, SavedFilter, WorkspaceStatus } from '@/types/index';
 import LeadDetailModal from '@/components/LeadDetailModal';
+
+// Helper component to show workspace status icon
+function WorkspaceStatusIcon({ promoCode }: { promoCode: string }) {
+  const { data: workspaceStatus } = useQuery<WorkspaceStatus>({
+    queryKey: ['workspaceStatus', promoCode],
+    queryFn: async () => {
+      const response = await api.get('/workspace-status', {
+        params: { code: promoCode }
+      });
+      return response.data;
+    },
+    staleTime: 60000, // Cache for 1 minute
+    retry: 1,
+  });
+
+  if (!workspaceStatus) {
+    return <span>🟡</span>; // Default while loading
+  }
+
+  if (workspaceStatus.found && workspaceStatus.workspace.rootUserHasLoggedIn) {
+    return <span>🟢</span>; // Workspace Active
+  }
+
+  if (workspaceStatus.found) {
+    return <span>🟡</span>; // Workspace created, not logged in
+  }
+
+  return <span>🔴</span>; // Waiting (no workspace)
+}
 
 export default function KanbanPage() {
   const [search, setSearch] = useState('');
@@ -352,9 +381,7 @@ export default function KanbanPage() {
                       <div className="mt-2 pt-2 border-t border-gray-100">
                         <p className="text-xs text-gray-500 flex items-center justify-between">
                           <span className="font-mono">{lead.promo_code}</span>
-                          <span>
-                            {lead.promo_code_status === 'redeemed' ? '🟢' : '🟡'}
-                          </span>
+                          <WorkspaceStatusIcon promoCode={lead.promo_code} />
                         </p>
                         {lead.promo_code_assigned_at && (
                           <p className="text-xs text-gray-400 mt-0.5">
@@ -426,9 +453,7 @@ export default function KanbanPage() {
                       <div className="mt-2 pt-2 border-t border-gray-100">
                         <p className="text-xs text-gray-500 flex items-center justify-between">
                           <span className="font-mono">{lead.promo_code}</span>
-                          <span>
-                            {lead.promo_code_status === 'redeemed' ? '🟢' : '🟡'}
-                          </span>
+                          <WorkspaceStatusIcon promoCode={lead.promo_code} />
                         </p>
                         {lead.promo_code_assigned_at && (
                           <p className="text-xs text-gray-400 mt-0.5">
