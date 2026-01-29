@@ -18,6 +18,7 @@ import {
   Bell,
   Tag as TagIcon,
   Plus,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
   Ticket,
@@ -832,7 +833,15 @@ Viel Erfolg beim Ausprobieren!`;
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                     />
                   ) : (
-                    <p className="mt-1 text-gray-900">{leadData.phone || '-'}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-gray-900">{leadData.phone || '-'}</p>
+                      {leadData.phone_verified && (
+                        <CheckCircle
+                          className="w-4 h-4 text-green-600"
+                          title={`Verifiziert am ${leadData.phone_verified_at ? new Date(leadData.phone_verified_at).toLocaleDateString('de-DE') : ''}`}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
