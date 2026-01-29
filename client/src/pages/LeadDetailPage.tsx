@@ -836,10 +836,9 @@ Viel Erfolg beim Ausprobieren!`;
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-gray-900">{leadData.phone || '-'}</p>
                       {leadData.phone_verified && (
-                        <CheckCircle
-                          className="w-4 h-4 text-green-600"
-                          title={`Verifiziert am ${leadData.phone_verified_at ? new Date(leadData.phone_verified_at).toLocaleDateString('de-DE') : ''}`}
-                        />
+                        <span title={`Verifiziert am ${leadData.phone_verified_at ? new Date(leadData.phone_verified_at).toLocaleDateString('de-DE') : ''}`}>
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </span>
                       )}
                     </div>
                   )}
