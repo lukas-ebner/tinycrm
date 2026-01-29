@@ -1749,11 +1749,11 @@ Viel Erfolg beim Ausprobieren!`;
                       <span className="flex items-center gap-1 text-gray-500 font-medium">
                         lädt...
                       </span>
-                    ) : workspaceStatus?.found && workspaceStatus.workspace.rootUserHasLoggedIn ? (
+                    ) : workspaceStatus?.found && workspaceStatus.workspace?.rootUserHasLoggedIn ? (
                       <span className="flex items-center gap-1 text-green-600 font-medium">
                         Workspace Aktiv 🟢
                       </span>
-                    ) : workspaceStatus?.found ? (
+                    ) : workspaceStatus?.found && workspaceStatus.workspace ? (
                       <span className="flex items-center gap-1 text-yellow-600 font-medium">
                         Workspace erstellt 🟡
                       </span>
@@ -1770,7 +1770,7 @@ Viel Erfolg beim Ausprobieren!`;
                   <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
                     <p className="text-xs text-gray-500">Lade Workspace-Status...</p>
                   </div>
-                ) : workspaceStatus?.found ? (
+                ) : workspaceStatus?.found && workspaceStatus.workspace ? (
                   <div className="mt-4 p-3 bg-green-50 rounded border border-green-200">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">

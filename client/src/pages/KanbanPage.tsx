@@ -23,11 +23,11 @@ function WorkspaceStatusIcon({ promoCode }: { promoCode: string }) {
     return <span>🟡</span>; // Default while loading
   }
 
-  if (workspaceStatus.found && workspaceStatus.workspace.rootUserHasLoggedIn) {
+  if (workspaceStatus.found && workspaceStatus.workspace?.rootUserHasLoggedIn) {
     return <span>🟢</span>; // Workspace Active
   }
 
-  if (workspaceStatus.found) {
+  if (workspaceStatus.found && workspaceStatus.workspace) {
     return <span>🟡</span>; // Workspace created, not logged in
   }
 

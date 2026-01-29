@@ -24,7 +24,7 @@ function WorkspaceStatusBadge({ promoCode }: { promoCode: string }) {
     return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">...</span>;
   }
 
-  if (workspaceStatus?.found && workspaceStatus.workspace.rootUserHasLoggedIn) {
+  if (workspaceStatus?.found && workspaceStatus.workspace?.rootUserHasLoggedIn) {
     return (
       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
         Workspace Aktiv 🟢
@@ -32,7 +32,7 @@ function WorkspaceStatusBadge({ promoCode }: { promoCode: string }) {
     );
   }
 
-  if (workspaceStatus?.found) {
+  if (workspaceStatus?.found && workspaceStatus.workspace) {
     return (
       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
         Workspace erstellt 🟡

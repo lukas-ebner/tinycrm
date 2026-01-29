@@ -836,9 +836,9 @@ Viel Erfolg beim Ausprobieren!`;
                           Status: <span className="font-medium">
                             {workspaceStatusLoading ? (
                               <span className="text-gray-500">lädt...</span>
-                            ) : workspaceStatus?.found && workspaceStatus.workspace.rootUserHasLoggedIn ? (
+                            ) : workspaceStatus?.found && workspaceStatus.workspace?.rootUserHasLoggedIn ? (
                               <span className="text-green-600">Workspace Aktiv 🟢</span>
-                            ) : workspaceStatus?.found ? (
+                            ) : workspaceStatus?.found && workspaceStatus.workspace ? (
                               <span className="text-yellow-600">Workspace erstellt 🟡</span>
                             ) : (
                               <span className="text-red-600">Warten 🔴</span>
@@ -852,7 +852,7 @@ Viel Erfolg beim Ausprobieren!`;
                         <div className="mb-3 p-3 bg-gray-50 rounded border border-gray-200">
                           <p className="text-xs text-gray-500">Lade Workspace-Status...</p>
                         </div>
-                      ) : workspaceStatus?.found ? (
+                      ) : workspaceStatus?.found && workspaceStatus.workspace ? (
                         <div className="mb-3 p-3 bg-green-50 rounded border border-green-200">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm">
