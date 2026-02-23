@@ -10,11 +10,12 @@ dotenv.config({ path: join(__dirname, '../../.env'), override: true });
 
 const { Pool } = pg;
 
+const sslEnabled = process.env.DATABASE_URL?.includes('sslmode=require') ||
+  process.env.DATABASE_URL?.includes('neon.tech');
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 
 // Test connection
